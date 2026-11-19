@@ -1750,7 +1750,7 @@ async function showReview() {
     img.onload = () => { img.style.width = Math.min(860, img.naturalWidth * 1.5) + 'px'; };
     img.src = r.images[0];
     const b = r.bounds ? r.bounds.size.join('×') : '—';
-    $('#review-stats').textContent = `${r.voxels} ${S.isSprite ? 'pixels' : 'voxels'} · bounds ${b} · ${r.parts || 0} part(s) · ${(r.colors || []).length} colours · left/right symmetry ${Math.round((r.symmetry_x || 0) * 100)}%`;
+    $('#review-stats').textContent = `${r.voxels} ${S.isSprite ? 'pixels' : 'voxels'} · bounds ${b} · ${r.parts || 0} part(s) · ${(r.colors || []).length} colours · left/right symmetry ${Math.round((r.symmetry_x || 0) * 100)}%${r.score ? ` · score ${r.score.total}/100` : ''}`;
     const ul = $('#review-issues');
     ul.innerHTML = '';
     (r.issues && r.issues.length ? r.issues : ['No problems found.']).forEach((t) => {
@@ -2016,7 +2016,24 @@ function setNewKind(kind) {
 }
 function openNewDialog(kind = '2d') { setNewKind(kind); openModal('#new-dialog'); }
 
+/* ---------------------------------------------------------------- updates
+   The app asks Sparkle on every open whether a newer version exists (in the background, nothing is downloaded).
+   When there is one, an Update button shows at the bottom of the home and editor sidebars; it opens Sparkle's
+   install dialog. */
+function showUpdate(version) {
+  $$('.update-slot').forEach((slot) => {
+    slot.hidden = !version;
+    if (!version) return;
+    const b = slot.querySelector('.update-btn');
+    b.querySelector('.lbl').textContent = `Update to ${version}`;
+    b.title = `OpenPixel ${version} is available: install it`;
+  });
+}
+$$('.update-btn').forEach((b) => { b.onclick = () => nativeAction('checkUpdates'); });
+nativeAction('version').then((v) => { if (v && v.available) showUpdate(v.available); }).catch(() => {});
+
 window.PC = {
+  updateAvailable: (version) => showUpdate(version),
   refresh: (toolName) => {
     // Opening or starting a model from anywhere (menu, home, an agent) leaves the home screen.
     if (S.home && ['open_model', 'new_model', 'new_sprite'].includes(toolName)) hideHome();

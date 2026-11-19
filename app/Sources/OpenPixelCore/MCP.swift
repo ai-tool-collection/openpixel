@@ -40,6 +40,16 @@ public final class MCPServer {
     Review at least twice (after blocking in, and before exporting) and build colours with make_color_ramp rather than
     picking hex values one by one. Saves and exports add a review_reminder when the work changed since the last
     review or its issues are still open: act on it before you finish.
+    Every edit returns a `critique`: the score (0-100) and the findings that edit introduced, made worse or resolved.
+    If an edit introduces a problem, fix or undo it right away. The score only counts what the checks can measure:
+    aim for no open issues, then judge the pictures.
+    view_as_text gives the canvas as text with coordinate rulers (pixels, values 0-9, silhouette, and a diff against
+    another frame): read exact x/row positions there before set_pixels, and check light and silhouette without pictures.
+    For a set of assets: set_style locks the palette, size, light and outline for all of them (load or save a style
+    file); batch runs many calls in one request; review_set reviews saved files side by side for consistency.
+    Updates: call check_for_updates once at the start of a session. If an update is out, tell the person (install=true
+    shows the update dialog in the OpenPixel window for them to confirm). If it says reconnect_needed, your connection
+    runs an older OpenPixel than the one installed: reconnect the OpenPixel MCP server before you continue.
     3D workflow:
     1. get_model_info (or new_model with a size that fits the subject, e.g. 16-48 per side).
     2. Pick colours: get_palette, or make_color_ramp base=… for a hue-shifted ramp per material.
@@ -64,6 +74,7 @@ public final class MCPServer {
             3. Choose 2-4 materials and make one ramp each with make_color_ramp base=… (3-5 steps), plus a dark outline hue.
             4. new_sprite, then paint_slice: first the silhouette in one colour, then flat colours, then shading, then outline and details.
             5. After each step call review_model. Look at the silhouette, the grayscale values and the actual-size pictures, not only the enlarged one.
+               Read each edit's critique: if it introduced an issue, fix or undo it before moving on. Use view_as_text for exact coordinates.
                List what looks wrong (shape, readability, light, lines, colours) and every issue it reports, fix them, and review again.
             6. Stop when the issues list is empty or every remaining item is deliberate, and the sprite reads at actual size.
             \(MCPServer.instructions)
@@ -77,7 +88,8 @@ public final class MCPServer {
             2. Plan the key poses and the frame count in one line (idle 2-4, walk 4-8, attack 3-6), and which frames are holds.
             3. For each frame: add_frame (copies the previous), change only what moves, keep the ground line and the volume steady.
             4. Set durations with set_frame_duration: key poses longer, in-betweens shorter.
-            5. review_model shows every frame side by side and checks for identical frames and jumps in volume; fix them.
+            5. review_model shows every frame side by side and checks for identical frames, jumps in volume and a ground line that moves; fix them.
+               view_as_text maps=["diff"] shows exactly which pixels change from the previous frame.
             6. Export with export_gif and export_sheet.
             """
         }),
@@ -86,6 +98,46 @@ public final class MCPServer {
                 "\nRead pixel_art_guide (topics voxel and color) first. After each major step call review_model, list what looks wrong, and fix it before moving on."
         }),
     ]
+
+    /// This MCP server is the agent's own process and keeps running across app updates. If the window or the
+    /// installed app is newer than it, the agent must reconnect to get the new version's tools.
+    public static func addConnectionVersion(_ json: inout [String: Any], installed: String? = Updates.installedVersion()) {
+        json["agent_connection_version"] = MCPServer.version
+        let newer = [json["running_version"] as? String, installed].compactMap { $0 }
+            .filter { Updates.compare($0, MCPServer.version) > 0 }.max { Updates.compare($0, $1) < 0 }
+        if let v = newer {
+            json["reconnect_needed"] = "Your OpenPixel MCP connection runs \(MCPServer.version), but OpenPixel \(v) is installed. Restart or reconnect the OpenPixel MCP server in your agent (for Claude Code: /mcp, then reconnect openpixel) to work on the new version."
+        }
+    }
+
+    /// Runs every file argument of a call through `policy`: `path`, `save_path`, the `paths` list, and the
+    /// same inside each call of a batch, so no tool or nesting reaches a file the policy refuses.
+    public static func confinePaths(_ tool: String, _ args: [String: Any], _ policy: (String) throws -> String) throws -> [String: Any] {
+        var out = args
+        for key in ["path", "save_path"] where out[key] != nil && !(out[key] is NSNull) {
+            guard let p = out[key] as? String else { throw PCError.invalid("\(key) must be text") }
+            out[key] = try policy(p)
+        }
+        if let list = out["paths"] {
+            guard let ps = list as? [Any] else { throw PCError.invalid("paths must be a list of text") }
+            out["paths"] = try ps.map { v -> String in
+                guard let p = v as? String else { throw PCError.invalid("paths must be a list of text") }
+                return try policy(p)
+            }
+        }
+        if tool == "batch", let calls = out["calls"] as? [Any] {
+            out["calls"] = try calls.map { c -> Any in
+                guard var o = c as? [String: Any] else { return c }
+                let name = o["tool"] as? String ?? ""
+                if let inner = o["args"] {
+                    guard let ia = inner as? [String: Any] else { throw PCError.invalid("each call's args must be an object") }
+                    o["args"] = try confinePaths(name, ia, policy)
+                }
+                return o
+            }
+        }
+        return out
+    }
 
     /// Handles one JSON-RPC message; returns the response line, or nil for notifications.
     public func handle(_ line: String) -> String? {
@@ -123,9 +175,11 @@ public final class MCPServer {
             }
             var args = params["arguments"] as? [String: Any] ?? [:]
             do {
-                if let policy = pathPolicy, let p = args["path"] as? String { args["path"] = try policy(p) }
+                if let policy = pathPolicy { args = try MCPServer.confinePaths(name, args, policy) }
                 let out = try backend().call(name, args)
-                var content: [[String: Any]] = [["type": "text", "text": encode(out.json, pretty: true)]]
+                var json = out.json
+                if name == "check_for_updates" { MCPServer.addConnectionVersion(&json) }
+                var content: [[String: Any]] = [["type": "text", "text": encode(json, pretty: true)]]
                 for img in out.images { content.append(["type": "image", "data": img.base64EncodedString(), "mimeType": "image/png"]) }
                 return reply(["content": content, "isError": false])
             } catch {
