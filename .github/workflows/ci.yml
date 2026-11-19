@@ -1,0 +1,82 @@
+# Checks every pull request. Each job runs only when its part of the repository changed; a skipped job counts as
+# passed, so the required checks (app-ci, web-ci) never block a pull request that doesn't touch them.
+# Nothing runs on pushes to main: main only changes through pull requests that already passed here, Coolify builds
+# the website on its own, and the release workflow runs the app's self-test before it ships anything.
+name: ci
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  changes:
+    name: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read
+    outputs:
+      app: ${{ steps.diff.outputs.app }}
+      web: ${{ steps.diff.outputs.web }}
+    steps:
+      - id: diff
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          if [ -z "$PR" ]; then  # started by hand: check everything
+            echo "app=true" >> "$GITHUB_OUTPUT"; echo "web=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          files="$(gh api --paginate "repos/$REPO/pulls/$PR/files" --jq '.[].filename')"
+          printf '%s\n' "$files"
+          touches() { printf '%s\n' "$files" | grep -qE "$1" && echo true || echo false; }
+          echo "app=$(touches '^(app/|\.github/workflows/ci\.yml$)')" >> "$GITHUB_OUTPUT"
+          echo "web=$(touches '^(web/|\.github/workflows/ci\.yml$)')" >> "$GITHUB_OUTPUT"
+
+  # If working out the changes fails, both jobs run rather than silently skipping.
+  app:
+    name: app-ci
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.app == 'true') }}
+    runs-on: macos-15
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build
+        run: swift build
+      - name: Self-test (engine, MCP, file parsing, HTTP path rules)
+        run: .build/debug/OpenPixel --selftest
+
+  web:
+    name: web-ci
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.web == 'true') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci --no-fund
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+      - name: Known vulnerabilities in dependencies
+        run: npm audit --audit-level=high

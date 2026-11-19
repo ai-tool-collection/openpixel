@@ -20,12 +20,8 @@ git fetch --quiet origin main --tags
 [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || { echo "error: main differs from origin/main — pull or push first" >&2; exit 1; }
 if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then echo "error: $TAG already exists" >&2; exit 1; fi
 
-if command -v gh >/dev/null 2>&1; then
-  STATE="$(gh run list --branch main --workflow app-ci.yml --limit 1 --json conclusion --jq '.[0].conclusion' 2>/dev/null || true)"
-  if [ -n "$STATE" ] && [ "$STATE" != "success" ]; then
-    echo "error: the latest app CI run on main is '$STATE' — fix it before releasing" >&2; exit 1
-  fi
-fi
+# No CI check here: main only changes through pull requests that passed CI, and the release workflow runs the
+# app's self-test before it publishes anything.
 
 LAST="$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)"
 echo "Releasing $TAG. Changes since ${LAST:-the beginning}:"

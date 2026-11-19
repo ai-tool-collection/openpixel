@@ -34,6 +34,8 @@ BUILD_NUMBER="$(git rev-list --count HEAD)"
 echo "$VERSION" > VERSION
 export BUILD_NUMBER
 UNIVERSAL=1 SIGN_ID=- sh build.sh
+# Refuse to ship a build whose self-test fails (engine, MCP, file parsing, HTTP path rules).
+"$APP/Contents/MacOS/OpenPixel" --selftest
 
 # --- Signature: inside out, hardened runtime, secure timestamp (what notarization requires) ---
 if [ -n "$SIGN_ID" ]; then
