@@ -35,9 +35,10 @@ public final class Engine {
 
     public func execute(_ name: String, _ raw: [String: Any], source: String = "agent") throws -> ToolOutput {
         let a = Args(raw)
-        let out: ToolOutput
+        var out: ToolOutput
         do {
             out = try run(name, a)
+            if source == "agent" { coach(name, &out) }
         } catch {
             log(name, source: source, ok: false, note: "\(error)")
             throw error
@@ -48,6 +49,58 @@ public final class Engine {
             log(name, source: source, ok: true, note: nil)
         }
         return out
+    }
+
+    // MARK: - coaching agents
+
+    /// What the agent's last review saw, so saves and exports can say when the work changed or still has open
+    /// issues. Agents tend to review once and stop; this keeps the draw → review → fix loop going to the end.
+    var reviewedRevision: Int?
+    var reviewIssues = 0
+    var reviews = 0
+    var rampsMade = 0
+    static let finishingTools: Set<String> = ["save_model", "export_png", "export_sheet", "export_gif", "export_svg",
+                                              "export_html", "export_vox", "export_obj"]
+
+    func coach(_ name: String, _ out: inout ToolOutput) {
+        switch name {
+        case "new_sprite", "new_model", "open_model":
+            reviewedRevision = nil; reviewIssues = 0; reviews = 0; rampsMade = 0
+            if name != "open_model" {
+                out.json["next_steps"] = [
+                    "pixel_art_guide once, if you have not read it",
+                    "make_color_ramp base=<the material's middle colour> for each material (3-5 steps), plus a dark outline hue",
+                    isSprite ? "paint_slice: silhouette, then flat colours" : "block out the big shapes",
+                    "review_model, fix what it lists",
+                    "shade, outline, details",
+                    "review_model again and fix every issue before saving or exporting",
+                ]
+            }
+        case "make_color_ramp":
+            rampsMade += 1
+        case "review_model", "analyze_model":
+            reviewedRevision = revision
+            reviews += 1
+            let issues = out.json["issues"] as? [String] ?? []
+            reviewIssues = issues.count
+            var next: [String] = []
+            if !issues.isEmpty { next.append("Fix the \(issues.count) issue(s) above, then call review_model again to confirm.") }
+            let colourTrouble = issues.contains { $0.contains("almost identical colours") || $0.contains("colours; a sprite this size") }
+            if colourTrouble && rampsMade == 0 {
+                next.append("make_color_ramp base=<colour> gives each material evenly spaced shades; replace_color merges the near-duplicates into them.")
+            }
+            if issues.isEmpty && reviews == 1 { next.append("No issues. After further changes, review again before exporting.") }
+            if !next.isEmpty { out.json["next"] = next }
+        default:
+            guard Engine.finishingTools.contains(name) else { return }
+            if reviewedRevision == nil {
+                out.json["review_reminder"] = "Saved without a review. Call review_model, fix what it lists, then save or export again."
+            } else if let r = reviewedRevision, r != revision {
+                out.json["review_reminder"] = "\(revision - r) edit(s) since the last review_model. Review again and fix what it lists before you finish."
+            } else if reviewIssues > 0 {
+                out.json["review_reminder"] = "The last review listed \(reviewIssues) issue(s). Fix them (or say why they are deliberate) and review again before you finish."
+            }
+        }
     }
 
     func log(_ name: String, source: String, ok: Bool, note: String?) {
@@ -332,7 +385,12 @@ public final class Engine {
                 for layer in d.cels { for cel in layer { for v in cel.data where Int(v) > maxUsed { maxUsed = Int(v) } } }
                 while pal.count <= maxUsed { pal.append(d.palette[pal.count]) }
                 d.palette = pal
-                return ["palette_colors": pal.count - 1]
+                var res: [String: Any] = ["palette_colors": pal.count - 1]
+                if a.has("colors") {
+                    let w = Craft.nearWarnings(Array(pal.dropFirst()))
+                    if !w.isEmpty { res["warnings"] = w }
+                }
+                return res
             }
 
         case "set_palette_color":
@@ -348,28 +406,57 @@ public final class Engine {
         case "add_colors":
             guard let list = a.array("colors") else { throw PCError.invalid("missing colors") }
             return try edit("Add colours") { d in
+                let before = Array(d.palette.dropFirst())
                 var idx: [Int] = []
                 for v in list { idx.append(Int(try Engine.color(v, &d))) }
-                return ["indexes": idx]
+                var res: [String: Any] = ["indexes": idx]
+                // Only colours this call really added are checked (reused ones were already in the palette).
+                let fresh = Array(d.palette.dropFirst(before.count + 1))
+                let w = Craft.nearWarnings(fresh, existing: before)
+                if !w.isEmpty { res["warnings"] = w }
+                return res
             }
 
         case "make_color_ramp":
-            guard let c0 = RGBA.parse(try a.reqString("from")), let c1 = RGBA.parse(try a.reqString("to")) else {
-                throw PCError.invalid("from/to must be hex colours")
-            }
-            let steps = max(2, min(16, a.int("steps", 4)))
-            return try edit("Colour ramp") { d in
-                var idx: [Int] = [], hex: [String] = []
-                for k in 0..<steps {
-                    let t = Double(k) / Double(steps - 1)
-                    // Pixel-art ramps shift hue a little: shadows lean cool, highlights warm.
-                    let mix: (UInt8, UInt8) -> Double = { Double($0) + (Double($1) - Double($0)) * t }
-                    let shift = (t - 0.5) * 10
-                    let c = RGBA(UInt8(max(0, min(255, mix(c0.r, c1.r) + shift))), UInt8(max(0, min(255, mix(c0.g, c1.g)))),
-                                 UInt8(max(0, min(255, mix(c0.b, c1.b) - shift))))
-                    idx.append(Int(Engine.addColor(c, &d))); hex.append(c.hex)
+            let steps = max(2, min(16, a.int("steps", a.has("base") ? 5 : 4)))
+            let colors: [RGBA]
+            if let b = a.string("base") {
+                guard let base = RGBA.parse(b) else { throw PCError.invalid("base must be a hex colour") }
+                colors = Craft.ramp(base: base, steps: steps, hueShift: a.double("hue_shift") ?? 12)
+            } else {
+                guard let f0 = a.string("from"), let t0 = a.string("to"), let c0 = RGBA.parse(f0), let c1 = RGBA.parse(t0) else {
+                    throw PCError.invalid("give base (one hex colour), or from and to (hex colours)")
                 }
-                return ["indexes": idx, "colors": hex]
+                colors = Craft.ramp(from: c0, to: c1, steps: steps, hueShift: a.double("hue_shift") ?? 8)
+            }
+            return try edit("Colour ramp") { d in
+                var idx: [Int] = []
+                for c in colors { idx.append(Int(Engine.addColor(c, &d))) }
+                return ["indexes": idx, "colors": colors.map { $0.hex }, "order": "darkest first"]
+            }
+
+        case "pixel_art_guide":
+            let topic = a.string("topic") ?? "all"
+            guard Craft.topics.contains(topic.lowercased()) else {
+                throw PCError.invalid("topic must be one of \(Craft.topics.joined(separator: ", "))")
+            }
+            return ToolOutput(["topic": topic, "guide": Craft.guideText(topic)])
+
+        case "pixel_perfect":
+            let l = try editableLayer(a)
+            let fs = try frames(a)
+            let depth = a.int("depth", 0)
+            guard depth >= 0 && depth < doc.sz else { throw PCError.invalid("depth must be 0-\(doc.sz - 1)") }
+            return try edit("Pixel-perfect lines") { d in
+                let only: UInt8? = a.has("color") ? try Engine.color(a.d["color"], &d) : nil
+                var cells: [[String: Any]] = []
+                for f in fs {
+                    for c in Craft.pixelPerfect(&d, layer: l, frame: f, depth: depth, only: only) {
+                        cells.append(["frame": f, "x": c[0], "row": c[1]])
+                    }
+                }
+                return ["changed": cells.count, "cells": Array(cells.prefix(60)),
+                        "note": cells.isEmpty ? "no doubled corners found" : "each removed pixel took the colour around it; review_model to check"]
             }
 
         // Layers & frames
@@ -601,14 +688,11 @@ public final class Engine {
         case "review_model":
             let f = try frameIndex(a)
             if isSprite {
-                // A 2D sprite: a big view for detail plus the real size.
-                let big = renderOptions(Args(["scale": a.int("scale") ?? max(2, min(16, 320 / max(doc.sx, doc.sy)))]), defaultScale: 4)
-                let one = renderOptions(Args(["scale": 1]), defaultScale: 1)
-                let (sheet, _) = Renderer.sheet([Renderer.render(doc, frame: f, big), Renderer.render(doc, frame: f, one)],
-                                                columns: 2, gap: 8, background: RGBA(44, 44, 48))
+                // A 2D sprite: enlarged with a pixel grid and as values, then silhouette and real sizes.
+                let (images, layout) = Craft.spriteReview(doc, frame: f, scale: a.int("scale"))
                 var json = Analysis.analyze(doc, frame: f)
-                json["picture_layout"] = "Left: the sprite enlarged. Right: actual size."
-                return ToolOutput(json, images: [ImageFiles.png(sheet)])
+                json["picture_layout"] = layout
+                return ToolOutput(json, images: images)
             }
             let scale = a.int("scale") ?? Renderer.autoScale(doc, target: 200)
             let views = ["iso", "iso-front-left", "iso-back-right", "iso-back-left", "front", "right", "top"]
@@ -804,6 +888,12 @@ public final class Engine {
             var warn: [String] = []
             if !unknown.isEmpty { warn.append("characters with no colour (add them to legend): \(String(unknown.sorted()))") }
             if clipped { warn.append("some text fell outside the model and was skipped") }
+            for (si, slice) in slices.enumerated() {
+                let lengths = Set(slice.map { $0.count })
+                if !merge, lengths.count > 1, let lo = lengths.min(), let hi = lengths.max() {
+                    warn.append("slice \(si): rows have different lengths (\(lo)-\(hi) characters), so columns may be misaligned; pad rows with '.' to the same width")
+                }
+            }
             if !warn.isEmpty { res["warnings"] = warn }
             return res
         }
