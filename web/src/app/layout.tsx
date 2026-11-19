@@ -1,28 +1,28 @@
 import type { Metadata, Viewport } from "next";
-import { Schibsted_Grotesk, JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
 // Fonts are downloaded at build time and served from this site: visitors make no requests to Google.
-const sans = Schibsted_Grotesk({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
+const sans = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap", axes: ["opsz"] });
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", display: "swap", weight: ["400", "500"] });
 
 const site = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
 export const metadata: Metadata = {
   metadataBase: new URL(site),
-  title: "OpenPixel — pixel art with your AI agent",
+  title: { default: "OpenPixel: the agentic pixel editor for Mac", template: "%s · OpenPixel" },
   description:
-    "A free, open-source Mac app for 2D sprites and 3D voxel models, with an MCP server built in so AI agents can draw, review and fix pixel art with you.",
+    "Free, open-source pixel art and voxel editor for the Mac with a built-in MCP server. Draw sprites, animations and 3D models with Claude, ChatGPT, Cursor or any agent.",
   icons: { icon: "/icon.png", apple: "/icon.png" },
   openGraph: {
     title: "OpenPixel",
-    description: "Pixel art and voxel models on the Mac, drawn with you or by your AI agent.",
-    images: [{ url: "/editor.png", width: 1440, height: 900, alt: "The OpenPixel editor with a pixel-art treasure chest" }],
+    description: "The agentic pixel editor for sprites and voxel worlds. Free and open source.",
+    images: [{ url: "/editor.png", width: 1440, height: 900, alt: "The OpenPixel editor" }],
     type: "website",
   },
 };
 
-export const viewport: Viewport = { themeColor: "#e9eaed" };
+export const viewport: Viewport = { themeColor: "#1e1e1e", colorScheme: "dark" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

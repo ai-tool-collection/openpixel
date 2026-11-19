@@ -1,0 +1,6 @@
+Agent logos in this folder come from @lobehub/icons-static-svg (https://github.com/lobehub/lobe-icons),
+released under the MIT licence, © LobeHub.
+
+The logos are trademarks of their respective owners (OpenAI, Anthropic, Anysphere, the OpenClaw project,
+Nous Research). OpenPixel shows them only to identify which apps can connect to it; it is not affiliated
+with or endorsed by any of them.
