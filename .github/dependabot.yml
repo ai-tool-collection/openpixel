@@ -8,9 +8,21 @@ updates:
     directory: /web
     schedule: { interval: weekly }
     labels: [dependencies, website]
+    # Minor and patch updates arrive together in one pull request. Major versions come one by one, so a breaking
+    # change can't hold back the rest.
     groups:
       web:
         patterns: ["*"]
+        update-types: [minor, patch]
+    ignore:
+      # The site runs on Node 22 (web/Dockerfile, web-ci); its types move with it, not ahead of it.
+      - dependency-name: "@types/node"
+        update-types: [version-update:semver-major]
+      # eslint-config-next and typescript-eslint don't support ESLint 10 or TypeScript 6+ yet.
+      - dependency-name: eslint
+        update-types: [version-update:semver-major]
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
   - package-ecosystem: swift
     directory: /app
     schedule: { interval: weekly }

@@ -14,6 +14,7 @@ jobs:
     runs-on: ${{ matrix.language == 'swift' && 'macos-15' || 'ubuntu-latest' }}
     timeout-minutes: 45
     permissions:
+      actions: read # CodeQL reads its own workflow run to report status
       contents: read
       security-events: write
     strategy:
