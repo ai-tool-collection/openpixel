@@ -21,4 +21,7 @@ Only the latest release gets security fixes. OpenPixel updates itself, so most p
 - **The app window** talks to agents through a socket in `~/Library/Application Support/OpenPixel` that only your
   user can open.
 - **Updates** are downloaded over HTTPS from GitHub and installed only if their EdDSA signature matches the key built
-  into the app. Releases are signed with a Developer ID and notarized by Apple.
+  into the app.
+- **Code signing.** Early releases are ad-hoc signed and not yet notarized by Apple, so macOS asks you to confirm the
+  first launch (System Settings → Privacy & Security → Open Anyway). Releases will carry a Developer ID and be
+  notarized once that is set up; each release's notes say which kind it is.

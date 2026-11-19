@@ -1,7 +1,11 @@
 # Publishes a release when a maintainer pushes a tag like v1.2.0 (only repository admins can; see RELEASING.md).
-# Builds a universal app, signs it with the Developer ID, notarizes the disk image, signs the Sparkle update
-# and creates the GitHub release with OpenPixel.dmg and appcast.xml. Tags with a "-" (v1.3.0-beta.1) become
-# pre-releases, which neither the website nor installed apps pick up.
+# Builds a universal app, signs the Sparkle update and creates the GitHub release with OpenPixel.dmg and
+# appcast.xml. Tags with a "-" (v1.3.0-beta.1) become pre-releases, which neither the website nor installed apps
+# pick up.
+#
+# Developer ID signing and notarization are optional: they run when the MACOS_CERT_P12 and NOTARY_KEY_P8 secrets
+# exist. Without them the release is ad-hoc signed (it runs, but macOS asks people to confirm the first launch).
+# Only SPARKLE_PRIVATE_KEY is required, because every update must be signed for installed apps to accept it.
 #
 # Secrets live in the "release" environment, which only v* tags may use: pull requests never see them.
 name: release
@@ -23,6 +27,9 @@ jobs:
     env:
       TAG: ${{ github.ref_name }}
       GH_TOKEN: ${{ github.token }}
+      # Secrets can't be tested in a step's `if`, so whether they exist is worked out here.
+      HAS_DEVELOPER_ID: ${{ secrets.MACOS_CERT_P12 != '' }}
+      HAS_NOTARY_KEY: ${{ secrets.NOTARY_KEY_P8 != '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -42,6 +49,7 @@ jobs:
           case "$VERSION" in *-*) echo "PRERELEASE=--prerelease" >> "$GITHUB_ENV" ;; *) echo "PRERELEASE=--latest" >> "$GITHUB_ENV" ;; esac
 
       - name: Import the Developer ID certificate into a temporary keychain
+        if: env.HAS_DEVELOPER_ID == 'true'
         env:
           MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
           MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
@@ -62,29 +70,45 @@ jobs:
           [ -n "$ID" ] || { echo "::error::no Developer ID Application certificate in MACOS_CERT_P12"; exit 1; }
           echo "SIGN_ID=$ID" >> "$GITHUB_ENV"
 
-      - name: Write the notarization and Sparkle keys to temporary files
+      - name: Write the Sparkle key (and notarization key, if any) to temporary files
         env:
           NOTARY_KEY_P8: ${{ secrets.NOTARY_KEY_P8 }}
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
         run: |
           umask 077
-          printf '%s' "$NOTARY_KEY_P8" | base64 --decode > "$RUNNER_TEMP/notary.p8"
+          [ -n "$SPARKLE_PRIVATE_KEY" ] || { echo "::error::SPARKLE_PRIVATE_KEY is missing: installed apps only accept signed updates"; exit 1; }
           printf '%s' "$SPARKLE_PRIVATE_KEY" > "$RUNNER_TEMP/sparkle.key"
-          echo "NOTARY_KEY_PATH=$RUNNER_TEMP/notary.p8" >> "$GITHUB_ENV"
           echo "SPARKLE_KEY_FILE=$RUNNER_TEMP/sparkle.key" >> "$GITHUB_ENV"
+          if [ "$HAS_NOTARY_KEY" = "true" ] && [ "$HAS_DEVELOPER_ID" = "true" ]; then
+            printf '%s' "$NOTARY_KEY_P8" | base64 --decode > "$RUNNER_TEMP/notary.p8"
+            echo "NOTARY_KEY_PATH=$RUNNER_TEMP/notary.p8" >> "$GITHUB_ENV"
+          else
+            echo "::notice::No Developer ID or notarization key: this release is ad-hoc signed and not notarized."
+          fi
 
       - name: Release notes (every pull request merged since the last tag)
         run: |
           gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" -f tag_name="$TAG" --jq .body > "$RUNNER_TEMP/notes.md"
+          # Unsigned builds tell people how to open them the first time.
+          if [ "$HAS_DEVELOPER_ID" != "true" ]; then
+            {
+              echo "> **First launch:** this build isn't notarized by Apple yet, so macOS asks you to confirm it once."
+              echo "> Open OpenPixel, then go to **System Settings → Privacy & Security** and click **Open Anyway**."
+              echo
+              cat "$RUNNER_TEMP/notes.md"
+            } > "$RUNNER_TEMP/notes-with-intro.md"
+            mv "$RUNNER_TEMP/notes-with-intro.md" "$RUNNER_TEMP/notes.md"
+          fi
           # The update window shows a short plain-text version; the full notes are on the release page.
           {
             echo "RELEASE_NOTES<<NOTES_END"
-            sed -E 's/^#+ //; s/\*\*//g; s/ by @[^ ]+ in https:[^ ]+//' "$RUNNER_TEMP/notes.md" | grep -v '^Full Changelog' | head -c 1500
+            # (Leaves out the first-launch note: whoever sees the update window already has the app open.)
+            grep -v '^> ' "$RUNNER_TEMP/notes.md" | sed -E 's/^#+ //; s/\*\*//g; s/ by @[^ ]+ in https:[^ ]+//' | grep -v '^Full Changelog' | head -c 1500
             echo
             echo "NOTES_END"
           } >> "$GITHUB_ENV"
 
-      - name: Build, sign, notarize, write appcast
+      - name: Build, sign (and notarize, if set up), write appcast
         working-directory: app
         env:
           NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}

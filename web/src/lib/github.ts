@@ -2,6 +2,13 @@
 
 export const REPO = process.env.GITHUB_REPO || "sophne/openpixel";
 export const REPO_URL = `https://github.com/${REPO}`;
+export const X_URL = process.env.NEXT_PUBLIC_X_URL || "https://x.com/eminvkc";
+/**
+ * Whether releases are signed with a Developer ID and notarized by Apple. Until then builds are ad-hoc signed and
+ * macOS asks people to confirm the first launch; the site says so. Set NEXT_PUBLIC_NOTARIZED=true once releases
+ * are notarized (see RELEASING.md).
+ */
+export const NOTARIZED = process.env.NEXT_PUBLIC_NOTARIZED === "true";
 /** Always the newest stable release: GitHub redirects this to the current OpenPixel.dmg. */
 export const DOWNLOAD_URL = `${REPO_URL}/releases/latest/download/OpenPixel.dmg`;
 

@@ -1,14 +1,21 @@
 import type { Metadata } from "next";
+import JsonLd from "@/components/JsonLd";
+import { breadcrumbJsonLd, pageMeta } from "@/lib/seo";
 import Link from "next/link";
 import { Footer, Header, Headline } from "@/components/Chrome";
 import { REPO_URL } from "@/lib/github";
 
-export const metadata: Metadata = { title: "Terms", description: "Terms for using OpenPixel and this website." };
+export const metadata: Metadata = pageMeta({
+  path: "/legal/terms",
+  title: "Terms",
+  description: "Terms for using OpenPixel and this website.",
+});
 
 export default function Terms() {
   return (
     <>
       <Header />
+      <JsonLd data={breadcrumbJsonLd([["Terms", "/legal/terms"]])} />
       <main>
         <section className="page-head wrap">
           <Headline as="h1" lead="Terms." rest="Free software, plainly stated." />
@@ -18,9 +25,12 @@ export default function Terms() {
 
           <h2>The software</h2>
           <p>
-            OpenPixel is released under the <a href={`${REPO_URL}/blob/main/LICENSE`}>MIT licence</a>. You may use,
-            copy, change and share it, including commercially, as long as you keep the copyright and licence notice. The
-            licence is the agreement that governs the software; nothing on this page limits it.
+            OpenPixel is released under the{" "}
+            <a href={`${REPO_URL}/blob/main/LICENSE`} target="_blank" rel="noopener noreferrer">
+              MIT licence
+            </a>
+            . You may use, copy, change and share it, including commercially, as long as you keep the copyright and
+            licence notice. The licence is the agreement that governs the software; nothing on this page limits it.
           </p>
 
           <h2>Your art is yours</h2>
@@ -31,9 +41,9 @@ export default function Terms() {
 
           <h2>No warranty</h2>
           <p>
-            OpenPixel is provided &ldquo;as is&rdquo;, without warranty of any kind, as the MIT licence says. Keep backups
-            of work that matters. To the extent the law allows, the maintainers are not liable for any damage arising
-            from the use of the software or this website.
+            OpenPixel is provided &ldquo;as is&rdquo;, without warranty of any kind, as the MIT licence says. Keep
+            backups of work that matters. To the extent the law allows, the maintainers are not liable for any damage
+            arising from the use of the software or this website.
           </p>
 
           <h2>AI agents and other services</h2>
@@ -52,12 +62,17 @@ export default function Terms() {
 
           <h2>Third-party components</h2>
           <p>
-            OpenPixel includes open-source components under their own licences. See <Link href="/legal/licenses">licences</Link>.
+            OpenPixel includes open-source components under their own licences. See{" "}
+            <Link href="/legal/licenses">licences</Link>.
           </p>
 
           <h2>Contact</h2>
           <p>
-            Questions about these terms: open an issue on <a href={`${REPO_URL}/issues`}>GitHub</a>.
+            Questions about these terms: open an issue on{" "}
+            <a href={`${REPO_URL}/issues`} target="_blank" rel="noopener noreferrer">
+              GitHub
+            </a>
+            .
           </p>
         </article>
       </main>

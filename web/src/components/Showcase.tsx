@@ -2,43 +2,55 @@
 
 import { useState } from "react";
 import Sprite from "@/components/Sprite";
-import { art } from "@/lib/art";
+import { art, type Art } from "@/lib/art";
 
-const TABS = [
+/**
+ * Tabs of examples under "Start from a sentence". Sprites and voxel models are stills (voxel models at their
+ * isometric angle, frame 1 of the 8-angle turnaround); only the Animation tab moves. Sprite sheets shows the
+ * coin's whole sheet as OpenPixel exports it, every frame side by side.
+ */
+
+type Item = { a: Art; label: string; frame?: number; still?: boolean };
+type Tab = { id: string; label: string; items: Item[]; sheet?: Art };
+
+const TABS: Tab[] = [
   {
     id: "sprites",
     label: "Sprites",
-    caption: "32×32 treasure chest, 18×18 agent, 16×18 potion.",
     items: [
-      { a: art.chest, scale: 7, label: "Pixel-art treasure chest" },
-      { a: art.robot, scale: 8, label: "Robot agent sprite, blinking" },
-      { a: art.potion, scale: 8, label: "Red potion with rising bubbles" },
+      { a: art.chest, label: "Pixel-art treasure chest", still: true },
+      { a: art.robot, label: "Robot agent sprite", still: true },
+      { a: art.potion, label: "Red potion", still: true },
     ],
   },
   {
     id: "voxels",
     label: "Voxel models",
-    caption: "Tree island, mushroom house and the chest made 3D, turning in isometric view.",
     items: [
-      { a: art.tree, scale: 2, label: "Voxel tree on a grass island, turning" },
-      { a: art.mushroom, scale: 2, label: "Voxel mushroom house, turning" },
-      { a: art.chest3d, scale: 2, label: "The treasure chest as a voxel model, turning" },
+      { a: art.tree, label: "Voxel tree on a grass island", still: true, frame: 1 },
+      { a: art.mushroom, label: "Voxel mushroom house", still: true, frame: 1 },
+      { a: art.chest3d, label: "The treasure chest as a voxel model", still: true, frame: 1 },
     ],
   },
   {
     id: "animation",
     label: "Animation",
-    caption: "Frames, durations and onion skin, exported as GIFs or sprite sheets.",
     items: [
-      { a: art.slime, scale: 9, label: "Slime bouncing, 6 frames" },
-      { a: art.coin, scale: 9, label: "Coin spinning, 8 frames" },
-      { a: art.campfire, scale: 9, label: "Campfire flickering, 4 frames" },
+      { a: art.slime, label: "Slime bouncing, 6 frames" },
+      { a: art.coin, label: "Coin spinning, 8 frames" },
+      { a: art.campfire, label: "Campfire flickering, 4 frames" },
     ],
   },
-] as const;
+  {
+    id: "sheets",
+    label: "Sprite sheets",
+    items: [],
+    sheet: art.coin,
+  },
+];
 
 export default function Showcase() {
-  const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("sprites");
+  const [tab, setTab] = useState(TABS[0].id);
   const current = TABS.find((t) => t.id === tab)!;
   return (
     <div className="showcase">
@@ -58,12 +70,26 @@ export default function Showcase() {
         ))}
       </div>
       <div className="stage" id="showcase-stage" role="tabpanel" aria-labelledby={`tab-${tab}`}>
-        <div className="stage-row" key={tab}>
-          {current.items.map((it) => (
-            <Sprite key={it.label} art={it.a} scale={it.scale} label={it.label} />
-          ))}
-        </div>
-        <p className="stage-caption">{current.caption}</p>
+        {current.sheet ? (
+          <div className="stage-sheet" key={tab}>
+            {/* eslint-disable-next-line @next/next/no-img-element -- a pixel-art strip shown at its exact proportions */}
+            <img
+              className="pixel"
+              src={current.sheet.src}
+              alt={`Sprite sheet: all ${current.sheet.frames} frames of the spinning coin in one row`}
+              width={current.sheet.w * current.sheet.frames}
+              height={current.sheet.h}
+            />
+          </div>
+        ) : (
+          <div className="stage-row" key={tab}>
+            {current.items.map((it) => (
+              <span key={it.label} className="stage-item">
+                <Sprite art={it.a} fluid label={it.label} paused={it.still} frame={it.frame ?? 0} />
+              </span>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

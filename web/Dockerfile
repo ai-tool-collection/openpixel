@@ -13,7 +13,13 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # Public values are baked in at build time; set them as build arguments in Coolify if you change them.
 ARG NEXT_PUBLIC_SITE_URL
-ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
+ARG NEXT_PUBLIC_X_URL
+ARG NEXT_PUBLIC_NOTARIZED=false
+ARG NEXT_PUBLIC_GTM_ID
+ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL \
+    NEXT_PUBLIC_X_URL=$NEXT_PUBLIC_X_URL \
+    NEXT_PUBLIC_NOTARIZED=$NEXT_PUBLIC_NOTARIZED \
+    NEXT_PUBLIC_GTM_ID=$NEXT_PUBLIC_GTM_ID
 RUN npm run build
 
 FROM node:22-alpine AS run

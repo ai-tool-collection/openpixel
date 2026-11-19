@@ -6,6 +6,8 @@ Agent edits appear live in the open window and can be undone.
 
 **[Download for Mac](https://github.com/sophne/openpixel/releases/latest/download/OpenPixel.dmg)** — macOS 13 or later,
 Apple silicon and Intel. OpenPixel updates itself.
+Until releases are notarized by Apple, macOS asks you to confirm the first launch: open the app once, then
+**System Settings → Privacy & Security → Open Anyway**.
 
 ![The OpenPixel editor](web/public/editor.png)
 

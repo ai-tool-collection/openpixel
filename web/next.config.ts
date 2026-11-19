@@ -1,14 +1,20 @@
 import type { NextConfig } from "next";
 
-// The site has no user input, no third-party scripts and no embeds, so the policy can be strict.
-// Next.js inlines small bootstrap scripts, hence 'unsafe-inline' for scripts; nothing else may load code.
+// The site has no user input and no embeds, so the policy can be strict. Next.js inlines small bootstrap scripts,
+// hence 'unsafe-inline' for scripts. The only outside code is Google Tag Manager with Google Analytics, which the
+// cookie banner loads only after the visitor allows it (src/lib/consent.ts); these are the hosts Google lists for it.
+const google = {
+  script: "https://*.googletagmanager.com",
+  img: "https://*.google-analytics.com https://*.googletagmanager.com",
+  connect: "https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com",
+};
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'" + (process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""),
+  `script-src 'self' 'unsafe-inline' ${google.script}` + (process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""),
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data:",
+  `img-src 'self' data: ${google.img}`,
   "font-src 'self'",
-  "connect-src 'self'",
+  `connect-src 'self' ${google.connect}`,
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -20,6 +26,13 @@ const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
   reactStrictMode: true,
+  // The download page moved to /downloads; old links keep working.
+  async redirects() {
+    return [
+      { source: "/download", destination: "/downloads", permanent: true },
+      { source: "/download/mac", destination: "/downloads/mac", permanent: true },
+    ];
+  },
   async headers() {
     return [
       {

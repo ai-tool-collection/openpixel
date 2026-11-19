@@ -1,0 +1,15 @@
+Logos in this folder identify the apps OpenPixel is compared with. They come from each project's own website,
+repository or store page, resized to 256×256:
+
+- Aseprite, Pixelorama, MagicaVoxel: their official websites
+- LibreSprite: github.com/LibreSprite/LibreSprite (desktop icon)
+- Piskel: github.com/piskelapp/piskel (src/logo.png)
+- Goxel: github.com/guillaumechereau/goxel (data/icons/icon256.png)
+- Lospec Pixel Editor: lospec.com (site icon)
+- Pixilart: pixilart.com (site icon)
+- PixelLab: pixellab.ai (site icon)
+- Pyxel Edit: pyxeledit.com (site icon)
+- Pro Motion NG: cosmigo.com (the Cosmigo symbol, the maker of Pro Motion NG)
+
+All names and logos are trademarks of their respective owners. OpenPixel shows them only to identify the apps it
+compares itself with; it is not affiliated with or endorsed by any of them.

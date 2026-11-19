@@ -1,33 +1,56 @@
 import Image from "next/image";
 import Link from "next/link";
+import AiIcon from "@/components/AiIcon";
 import AppWindow from "@/components/AppWindow";
-import CopyCommand from "@/components/CopyCommand";
+import PromptBar from "@/components/PromptBar";
+import Dock from "@/components/Dock";
 import Showcase from "@/components/Showcase";
 import Sprite from "@/components/Sprite";
 import { Footer, Header, Headline } from "@/components/Chrome";
 import { art } from "@/lib/art";
-import { REPO_URL } from "@/lib/github";
+import type { Metadata } from "next";
+import JsonLd from "@/components/JsonLd";
+import { NOTARIZED, REPO_URL, latestRelease } from "@/lib/github";
+import { homeJsonLd, pageMeta } from "@/lib/seo";
 
-const MCP_COMMAND = "claude mcp add openpixel -- /Applications/OpenPixel.app/Contents/MacOS/OpenPixel --mcp";
+export const metadata: Metadata = pageMeta({
+  path: "/",
+  title: "OpenPixel: the agentic pixel editor for Mac",
+  absoluteTitle: true,
+  description:
+    "Free, open-source pixel art and voxel editor for the Mac with a built-in MCP server. Draw sprites, animations and 3D models with Claude, Codex, Cursor or any agent.",
+});
 
-const AGENTS = [
-  { name: "Claude", logo: "claude-color.svg" },
-  { name: "Claude Code", logo: "claudecode-color.svg" },
-  { name: "ChatGPT", logo: "openai.svg", mono: true },
-  { name: "Codex", logo: "codex-color.svg" },
-  { name: "Cursor", logo: "cursor.svg", mono: true },
-  { name: "OpenClaw", logo: "openclaw-color.svg" },
-  { name: "Hermes Agent", logo: "hermesagent.svg", mono: true },
-  { name: "Any MCP client", logo: null },
+/**
+ * Agents as dark Dock icons (rendered from this Mac by web/scripts/dock-icons.swift). Agents without a Mac app
+ * get the plain dark tile with their mark drawn on top by the browser; "Any agent" gets the AI sparkle.
+ */
+const AGENTS: { name: string; icon: string; mark?: string; markClass?: string; sparkle?: boolean }[] = [
+  { name: "Claude", icon: "/dock/claude.png" },
+  { name: "Claude Code", icon: "/dock/claudecode.png", mark: "/agents/claudecode-color.svg" },
+  { name: "Grok", icon: "/dock/grok.png" },
+  { name: "Codex", icon: "/dock/codex.png", mark: "/dock/codex-mark.svg", markClass: "wide" },
+  { name: "Cursor", icon: "/dock/cursor.png" },
+  { name: "OpenClaw", icon: "/dock/openclaw.png", mark: "/agents/openclaw-color.svg" },
+  { name: "Hermes Agent", icon: "/dock/hermes.png" },
+  { name: "Any agent", icon: "/dock/tile.png", sparkle: true },
 ];
 
-const GALLERY = [
-  { a: art.slime, scale: 12, name: "Slime", note: "6 frames", bg: "forest" },
-  { a: art.mushroom, scale: 2, name: "Mushroom house", note: "22×24×22 voxels", bg: "plum" },
-  { a: art.campfire, scale: 11, name: "Campfire", note: "4 frames", bg: "night" },
-  { a: art.tree, scale: 2, name: "Tree island", note: "24×28×24 voxels", bg: "sky" },
-  { a: art.coin, scale: 11, name: "Coin", note: "8 frames", bg: "rust" },
-  { a: art.robot3d, scale: 2, name: "Agent, made 3D", note: "18×18×8 voxels", bg: "steel" },
+/**
+ * The "Made in OpenPixel" band: art drifting right to left across a canvas. Heights are fixed rather than
+ * random at runtime, so the server and the browser render the same thing; they're spread to look scattered.
+ * `y` is the distance from the top of the band in px; `scale` is the pixel size.
+ */
+const DRIFT = [
+  { a: art.slime, scale: 6, y: 204 },
+  { a: art.mushroom, scale: 1.5, y: 48 },
+  { a: art.coin, scale: 5, y: 264 },
+  { a: art.campfire, scale: 6, y: 108 },
+  { a: art.potion, scale: 5, y: 12 },
+  { a: art.tree, scale: 1.5, y: 144 },
+  { a: art.robot, scale: 5, y: 252 },
+  { a: art.chest, scale: 3, y: 72 },
+  { a: art.robot3d, scale: 1.6, y: 180 },
 ];
 
 const DB32 =
@@ -46,32 +69,37 @@ const MORE = [
   "Recent files with previews",
   "Headless mode for scripts and CI",
   "MCP over HTTP for ChatGPT",
-  "Updates itself, signed and notarized",
+  NOTARIZED ? "Updates itself, signed and notarized" : "Updates itself, every update verified",
   "Apple silicon and Intel",
 ];
 
-export default function Home() {
+export default async function Home() {
+  const release = await latestRelease();
   return (
     <>
       <Header />
+      <JsonLd data={homeJsonLd(release?.version)} />
       <main>
         {/* Hero */}
         <section className="hero">
           <div className="wrap hero-inner">
-            <Sprite art={art.robot} scale={4} label="OpenPixel's agent, a small robot with a blinking antenna" />
+            <Dock />
             <Headline as="h1" lead="OpenPixel is an agentic pixel editor" rest="for sprites and voxel worlds." />
-            <CopyCommand command={MCP_COMMAND} label="Copy" />
-            <a className="button primary large" href="/download/mac">
+            <PromptBar />
+            <a className="button primary large" href="/downloads/mac">
               Download for macOS
             </a>
             <p className="hero-note">
-              Free and open source. <a href={REPO_URL}>View on GitHub</a>
+              Free and open source.{" "}
+              <a href={REPO_URL} target="_blank" rel="noopener noreferrer">
+                View on GitHub
+              </a>
             </p>
           </div>
-          <div className="wrap-wide">
+          <div className="wrap media">
             <AppWindow
               src="/editor.png"
-              alt="The OpenPixel editor with a 32×32 treasure chest on the canvas while agents work on it"
+              alt="The OpenPixel editor with a 32×32 pixel-art treasure chest on the canvas"
               title="Pirate Treasure Chest"
               priority
             />
@@ -86,28 +114,23 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Gallery */}
+        {/* Gallery: art drifting across an OpenPixel canvas */}
         <section className="block">
           <div className="wrap">
             <Headline lead="Made in OpenPixel," rest="yours to keep." />
           </div>
-          <div className="gallery" tabIndex={0} aria-label="Pixel art made in OpenPixel">
-            {GALLERY.map((g) => (
-              <figure key={g.name} className={`gallery-card bg-${g.bg}`}>
-                <div className="gallery-art">
-                  <Sprite art={g.a} scale={g.scale} />
-                </div>
-                <figcaption>
-                  {g.name}
-                  <span>{g.note}</span>
-                </figcaption>
-              </figure>
-            ))}
+          <div className="drift" aria-label="Sprites and voxel models made in OpenPixel" role="img">
+            {/* Two identical sets: when the first has scrolled past, the second is exactly where it began. */}
+            <div className="drift-track" aria-hidden="true">
+              {[0, 1].map((set) =>
+                DRIFT.map((d, i) => (
+                  <span key={`${set}-${i}`} className="drift-item" style={{ marginTop: d.y }}>
+                    <Sprite art={d.a} scale={d.scale} />
+                  </span>
+                )),
+              )}
+            </div>
           </div>
-          <p className="wrap gallery-note">
-            Every sprite and model on this page was drawn by an agent through OpenPixel&apos;s MCP server. The script is
-            in the repository.
-          </p>
         </section>
 
         {/* Agents */}
@@ -117,19 +140,26 @@ export default function Home() {
             <ul className="agent-grid">
               {AGENTS.map((a) => (
                 <li key={a.name}>
-                  {a.logo ? (
-                    <Image src={`/agents/${a.logo}`} alt="" width={28} height={28} className={a.mono ? "mono-logo" : undefined} />
-                  ) : (
-                    <Sprite art={art.robot} scale={2} paused />
-                  )}
+                  <span className="agent-icon">
+                    <Image src={a.icon} alt="" width={128} height={128} unoptimized />
+                    {a.mark ? (
+                      <Image
+                        className={`agent-mark${a.markClass ? ` ${a.markClass}` : ""}`}
+                        src={a.mark}
+                        alt=""
+                        width={64}
+                        height={64}
+                        unoptimized
+                      />
+                    ) : null}
+                    {a.sparkle ? <AiIcon /> : null}
+                  </span>
                   <span>{a.name}</span>
                 </li>
               ))}
             </ul>
-            <p className="lead-text">
-              Connect over MCP with one command,
-              <br />
-              or run OpenPixel headless from your scripts and CI.
+            <p className="lead-text agents-line">
+              Connect over MCP with one command, or run OpenPixel headless from your scripts and CI.
             </p>
           </div>
         </section>
@@ -139,7 +169,7 @@ export default function Home() {
           <div className="wrap">
             <Headline lead="Agents draw right on your canvas." rest="Watch every stroke, undo any of them." />
           </div>
-          <div className="wrap-wide">
+          <div className="wrap media">
             <AppWindow
               src="/editor-3d.png"
               alt="The OpenPixel editor in 3D view with a voxel mushroom house"
@@ -196,15 +226,32 @@ export default function Home() {
                 <p>No sign-in, no analytics. The only request it makes is a daily check for updates.</p>
               </div>
               <div>
-                <h3>Signed and notarized</h3>
-                <p>Releases carry a Developer ID, are notarized by Apple, and every update is verified before it installs.</p>
+                {NOTARIZED ? (
+                  <>
+                    <h3>Signed and notarized</h3>
+                    <p>
+                      Releases carry a Developer ID, are notarized by Apple, and every update is verified before it
+                      installs.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <h3>Verified updates</h3>
+                    <p>Every update is checked against OpenPixel&apos;s own signing key before it installs.</p>
+                  </>
+                )}
               </div>
             </div>
             <div className="row-buttons">
-              <a className="button" href={REPO_URL}>
+              <a className="button" href={REPO_URL} target="_blank" rel="noopener noreferrer">
                 Read the code
               </a>
-              <a className="button ghost" href={`${REPO_URL}/blob/main/CONTRIBUTING.md`}>
+              <a
+                className="button ghost"
+                href={`${REPO_URL}/blob/main/CONTRIBUTING.md`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 Contribute
               </a>
             </div>
@@ -266,7 +313,13 @@ export default function Home() {
               <article className="card feature">
                 <h3>Sprite sheets</h3>
                 <div className="feature-art">
-                  <Image src={art.coin.src} alt="" width={art.coin.w * art.coin.frames * 2} height={art.coin.h * 2} className="pixel" />
+                  <Image
+                    src={art.coin.src}
+                    alt=""
+                    width={art.coin.w * art.coin.frames * 2}
+                    height={art.coin.h * 2}
+                    className="pixel"
+                  />
                 </div>
                 <p>Every frame and every angle in one PNG, ready for your game engine.</p>
               </article>
@@ -305,7 +358,7 @@ export default function Home() {
             <Headline lead="Start drawing" rest="your ideas today." />
             <p className="lead-text">Draw with agents, refine every pixel, and ship it straight to your game.</p>
             <div className="row-buttons center">
-              <a className="button primary large" href="/download/mac">
+              <a className="button primary large" href="/downloads/mac">
                 Download for macOS
               </a>
               <Link className="button large" href="/compare">

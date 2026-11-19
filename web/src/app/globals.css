@@ -19,6 +19,10 @@
   --r-card: 16px;
   --wrap: 1120px;
   --wrap-wide: 1240px;
+  --title-size: clamp(32px, 4.2vw, 50px);
+  /* The content width every page shares: text, images and windows (hero ones included) sit inside it.
+     Only the header and footer use the slightly wider --wrap-wide. */
+  --content: calc(var(--wrap) - 40px);
   color-scheme: dark;
 }
 
@@ -122,7 +126,7 @@ pre {
 }
 
 h1.headline {
-  font-size: clamp(32px, 4.2vw, 50px);
+  font-size: var(--title-size);
   line-height: 1.12;
 }
 
@@ -202,97 +206,157 @@ h1.headline {
   position: sticky;
   top: 0;
   z-index: 20;
-  background: rgba(30, 30, 30, 0.82);
-  backdrop-filter: saturate(140%) blur(14px);
-  -webkit-backdrop-filter: saturate(140%) blur(14px);
-  border-bottom: 1px solid transparent;
+  transition: background-color 0.2s ease;
+}
+
+/* Transparent over the top of the page; a solid bar once you scroll. */
+html[data-scrolled="true"] .site-header {
+  background: var(--canvas);
 }
 
 .header-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 60px;
+  height: 64px;
   max-width: var(--wrap-wide);
 }
 
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   color: var(--text);
   font-weight: 600;
-  font-size: 15px;
-  letter-spacing: -0.01em;
+  font-size: 16px;
+  letter-spacing: -0.015em;
+}
+
+.brand img {
+  margin-left: -3px;
 }
 
 .site-header nav {
   display: flex;
   align-items: center;
-  gap: 26px;
-  font-size: 14px;
+  gap: 6px;
 }
 
-.site-header nav a:not(.button) {
+.icon-link {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
   color: var(--text-2);
+  transition: color 0.15s ease, background-color 0.15s ease;
 }
 
-.site-header nav a:not(.button):hover {
+.icon-link:hover {
   color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
 }
 
+.site-header .button {
+  margin-left: 8px;
+}
+
+/* Footer, after pen.dev's: the tagline with the app icon at the far end, four link columns across the full
+   width of the header (a bit wider than the content), the copyright centred. */
 .site-footer {
   margin-top: 120px;
-  padding-block: 56px 40px;
-  border-top: 1px solid var(--line-soft);
-  background: var(--deep);
-  font-size: 14px;
+  padding: 64px 0 40px;
+  background: var(--canvas);
 }
 
-.footer-grid {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr;
-  gap: 32px;
-  max-width: var(--wrap-wide);
+.footer-inner {
+  max-width: var(--wrap-wide); /* the same width as the header, a bit wider than the content */
+  margin: 0 auto;
+  padding-inline: 20px;
 }
 
-.footer-brand p {
-  margin-top: 12px;
-  max-width: 30ch;
-}
-
-.site-footer nav {
+.footer-top {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
 }
 
-.site-footer nav a {
+.footer-tagline {
+  font-size: 16px;
+  line-height: 22px;
+  letter-spacing: -0.01em;
   color: var(--text-2);
 }
 
-.site-footer nav a:hover {
+/* The tile is as tall as the two tagline lines (44px). The icon file has a margin around the tile
+   (824 of 1024 px), so the image is drawn larger and pulled in to sit flush with the right edge. */
+.footer-mark {
+  display: block;
+  flex: none;
+  margin: -5.5px -5.5px -5.5px 0;
+}
+
+.footer-mark img {
+  display: block;
+  width: 55px;
+  height: 55px;
+}
+
+/* Spread edge to edge: social icons at the left edge, legal links ending at the right edge, the gaps equal. */
+.footer-links {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  margin-top: 72px;
+}
+
+.footer-links nav {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: -0.01em;
+}
+
+.footer-links a {
+  color: var(--text-2);
+  transition: color 150ms ease;
+}
+
+.footer-links a:hover {
   color: var(--text);
 }
 
-.site-footer h2 {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text);
-  margin-bottom: 6px;
+.footer-links nav.footer-social {
+  flex-direction: row;
+  align-items: center;
+  gap: 18px;
+  height: 24px;
 }
 
-.footer-note {
-  margin-top: 48px;
-  font-size: 12.5px;
+.footer-social svg {
+  display: block;
+}
+
+.footer-copy {
+  margin-top: 96px;
+  text-align: center;
+  font-size: 15px;
   color: var(--text-3);
-  max-width: var(--wrap-wide);
 }
 
 /* ---------- hero */
 
 .hero {
-  padding-top: 72px;
+  /* The dock and the prompt bar share one height. */
+  --dock-icon: calc(var(--title-size) / 1.5);
+  --dock-h: calc(var(--dock-icon) + 12px);
+  margin-top: -65px;
+  padding-top: 137px;
   background: radial-gradient(70% 420px at 50% 0, #2a2a2a 0%, rgba(30, 30, 30, 0) 100%);
 }
 
@@ -308,12 +372,36 @@ h1.headline {
   margin-bottom: 28px;
 }
 
-.hero-inner .command {
+.hero-inner .prompt {
   margin-top: 36px;
+  width: min(100%, 640px);
+}
+
+/* Appears under the bar after Create, then fades away. */
+.prompt-hint {
+  min-height: 20px;
+  margin-top: 10px;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--text-3);
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: opacity 200ms cubic-bezier(0.23, 1, 0.32, 1), transform 200ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.prompt-hint.shown {
+  opacity: 1;
+  transform: none;
+}
+
+.prompt-hint a {
+  color: var(--text-2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .hero-inner .button.primary {
-  margin-top: 24px;
+  margin-top: 14px;
 }
 
 .hero-note {
@@ -329,8 +417,11 @@ h1.headline {
   text-underline-offset: 3px;
 }
 
+/* In the hero the window sits straight on the page: no panel colour or shadow behind the screenshot. */
 .hero .window {
   margin-top: 64px;
+  background: none;
+  box-shadow: none;
 }
 
 /* the command bar (like the app's Agents page) */
@@ -437,82 +528,6 @@ h1.headline {
   position: relative;
 }
 
-.cursors {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.agent-cursor {
-  position: absolute;
-  display: inline-flex;
-  align-items: flex-start;
-  gap: 2px;
-  will-change: transform;
-}
-
-.agent-cursor svg {
-  fill: var(--c);
-  stroke: #1e1e1e;
-  stroke-width: 1.2;
-}
-
-.agent-cursor .tag {
-  margin-top: 12px;
-  padding: 1px 7px;
-  border-radius: 4px;
-  background: var(--c);
-  color: #1e1e1e;
-  font-size: 11.5px;
-  font-weight: 600;
-  line-height: 18px;
-}
-
-.tone-accent { --c: var(--accent); }
-.tone-cyan { --c: #2ce8f5; }
-.tone-lime { --c: #a6e15a; }
-
-.path-a {
-  left: 38%;
-  top: 30%;
-  animation: path-a 11s ease-in-out infinite;
-}
-
-.path-b {
-  left: 58%;
-  top: 56%;
-  animation: path-b 13s ease-in-out infinite;
-}
-
-.path-c {
-  left: 82%;
-  top: 22%;
-  animation: path-c 15s ease-in-out infinite;
-}
-
-@keyframes path-a {
-  0%,
-  100% { transform: translate(0, 0); }
-  25% { transform: translate(90px, 60px); }
-  50% { transform: translate(40px, 140px); }
-  75% { transform: translate(-60px, 70px); }
-}
-
-@keyframes path-b {
-  0%,
-  100% { transform: translate(0, 0); }
-  30% { transform: translate(-120px, -40px); }
-  60% { transform: translate(-40px, -120px); }
-  80% { transform: translate(40px, -30px); }
-}
-
-@keyframes path-c {
-  0%,
-  100% { transform: translate(0, 0); }
-  35% { transform: translate(-30px, 120px); }
-  70% { transform: translate(20px, 220px); }
-}
-
 /* ---------- sprites */
 
 .sprite {
@@ -530,13 +545,28 @@ h1.headline {
   to { background-position-x: var(--sprite-end); }
 }
 
+/* Fluid sprites step through frames by percentage: N frames from 0% to 100%, each shown equally long. */
+.sprite.fluid {
+  display: block;
+}
+
+.sprite.fluid.playing {
+  animation: sprite-fluid var(--sprite-time) steps(var(--sprite-steps), jump-none) infinite;
+}
+
+@keyframes sprite-fluid {
+  from { background-position-x: 0%; }
+  to { background-position-x: 100%; }
+}
+
 /* ---------- sections */
 
 .block {
   padding-top: 140px;
 }
 
-.block > .wrap-wide {
+/* Screenshots and videos sit in the same container as the text above them, never wider. */
+.block > .wrap.media {
   margin-top: 48px;
 }
 
@@ -576,33 +606,46 @@ h1.headline {
   color: var(--text);
 }
 
+/* A steady height for every tab (the tallest is a voxel model), so switching tabs never moves the page. */
 .stage {
-  margin-top: 28px;
-  border-radius: var(--r-card);
-  border: 1px solid var(--line-soft);
-  background-color: var(--panel-2);
-  background-image:
-    linear-gradient(45deg, #292929 25%, transparent 25%, transparent 75%, #292929 75%),
-    linear-gradient(45deg, #292929 25%, transparent 25%, transparent 75%, #292929 75%);
-  background-size: 32px 32px;
-  background-position: 0 0, 16px 16px;
-  padding: 56px 24px 28px;
+  margin-top: 40px;
+  /* The tallest example (the voxel chest) is about 0.37× the row's width; the row is at most 640px. */
+  min-height: calc(min(640px, 100vw - 40px) * 0.39);
+  display: grid;
+  align-items: center;
 }
 
-.stage-row {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: flex-end;
-  gap: 48px 64px;
-  min-height: 300px;
+/* Three examples side by side in a centred row, each a third of it. */
+.stage-row,
+.stage-sheet {
+  width: 100%; /* inside the grid stage, auto margins would otherwise shrink the row to nothing */
+  max-width: 640px;
+  margin-inline: auto;
   animation: fade-in 0.35s ease;
 }
 
-.stage-caption {
-  margin-top: 32px;
-  font-size: 13px;
-  color: var(--text-3);
+.stage-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+  gap: clamp(16px, 4vw, 40px);
+}
+
+/* The sprite sheet: one strip across the same width, frames edge to edge as exported. */
+.stage-sheet img {
+  width: 100%;
+  height: auto;
+}
+
+.stage-item {
+  display: block;
+  min-width: 0;
+}
+
+/* Always in colour and moving, at a calmer pace than the sprites' own frame timing. */
+.stage-item .sprite.playing,
+.stage-item .sprite.fluid.playing {
+  animation-duration: calc(var(--sprite-time) * 1.6);
 }
 
 @keyframes fade-in {
@@ -610,90 +653,111 @@ h1.headline {
   to { opacity: 1; transform: none; }
 }
 
-/* gallery */
+/* "Made in OpenPixel": a canvas band (the app's dark preview checkerboard) with art drifting right to left at a
+   steady pace. Both ends fade into the page. */
 
-.gallery {
-  display: flex;
-  gap: 16px;
+.drift {
+  position: relative;
   margin-top: 48px;
-  padding: 0 max(20px, calc((100vw - var(--wrap)) / 2 + 20px)) 8px;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scroll-padding-inline: max(20px, calc((100vw - var(--wrap)) / 2 + 20px));
-  scrollbar-width: none;
-}
-
-.gallery::-webkit-scrollbar {
-  display: none;
-}
-
-.gallery-card {
-  flex: none;
-  width: 300px;
-  margin: 0;
-  scroll-snap-align: start;
-  border-radius: var(--r-card);
+  height: 456px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background-color: #1b1b1b;
+  background-image:
+    linear-gradient(45deg, #222 25%, transparent 25%, transparent 75%, #222 75%),
+    linear-gradient(45deg, #222 25%, transparent 25%, transparent 75%, #222 75%);
+  background-size: 32px 32px;
+  background-position: 0 0, 16px 16px;
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 14%, #000 86%, transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 14%, #000 86%, transparent 100%);
 }
 
-.gallery-art {
-  height: 340px;
-  display: grid;
-  place-items: center;
-}
-
-.gallery-card figcaption {
+.drift-track {
   display: flex;
-  justify-content: space-between;
-  padding: 14px 18px;
-  background: rgba(0, 0, 0, 0.28);
-  color: var(--text);
-  font-size: 13.5px;
-  font-weight: 500;
+  align-items: flex-start;
+  gap: 96px;
+  width: max-content;
+  padding-left: 96px;
+  animation: drift 70s linear infinite;
 }
 
-.gallery-card figcaption span {
-  color: rgba(255, 255, 255, 0.6);
-  font-weight: 400;
+.drift-item {
+  flex: none;
 }
 
-.bg-forest { background: #1f3a2f; }
-.bg-plum { background: #3a2433; }
-.bg-night { background: #1b1d2e; }
-.bg-sky { background: #1d3550; }
-.bg-rust { background: #4a2a1f; }
-.bg-steel { background: #2a3142; }
-
-.gallery-note {
-  margin-top: 20px;
-  font-size: 13px;
-  color: var(--text-3);
+@keyframes drift {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
 }
 
 /* agents */
 
+/* One row of tall cards, like pen.dev's model row: a large logo at the top, the name at the bottom. */
 .agent-grid {
   list-style: none;
   margin: 48px 0 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 6px;
 }
 
 .agent-grid li {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 40px;
-  height: 136px;
-  padding: 20px;
-  border-radius: 12px;
-  background: var(--panel-2);
-  border: 1px solid var(--line-soft);
-  color: var(--text);
+  aspect-ratio: 233 / 276;
+  padding: 14px 14px 12px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-3);
   font-size: 14px;
+  line-height: 1.3;
+}
+
+/* A Dock icon: the rendered tile has a margin and shadow, so 46px of image is a 40px tile. */
+.agent-icon {
+  position: relative;
+  display: block;
+  width: 46px;
+  height: 46px;
+  margin: -3px;
+}
+
+.agent-icon > img:first-child {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Marks drawn on the plain dark tiles (agents without a Mac app). */
+.agent-icon .agent-mark,
+.agent-icon .ai-icon {
+  position: absolute;
+  top: 26%;
+  left: 26%;
+  width: 48%;
+  height: 48%;
+}
+
+.agent-icon .agent-mark.wide {
+  top: 16%;
+  left: 17%;
+  width: 66%;
+  height: 66%;
+}
+
+.ai-icon {
+  fill: none;
+  stroke: var(--text);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* The line under the cards runs as one sentence across the full width. */
+.agents-line {
+  max-width: none;
 }
 
 .mono-logo {
@@ -904,13 +968,12 @@ h1.headline {
 
 /* ---------- inner pages */
 
+/* Text pages (changelog, legal) share the site's content container: heading and text start at its left edge. */
 .page-head {
   padding-top: 88px;
-  text-align: center;
 }
 
 .page-head .lead-text {
-  margin-inline: auto;
   max-width: 52ch;
 }
 
@@ -919,10 +982,20 @@ h1.headline {
 }
 
 .prose {
-  max-width: 720px;
-  margin-inline: auto;
   padding-top: 64px;
   color: var(--text-2);
+}
+
+/* Same container as every page; lines of text stay a comfortable length inside it. */
+.prose > p,
+.prose > ul,
+.prose > ol,
+.prose > h2,
+.prose > h3,
+.prose > pre,
+.prose .release,
+.prose .card {
+  max-width: 72ch;
 }
 
 .prose h2 {
@@ -1173,7 +1246,10 @@ h1.headline {
 /* ---------- small screens */
 
 @media (max-width: 960px) {
-  .agent-grid,
+  .agent-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
   .quad {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1188,12 +1264,10 @@ h1.headline {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .footer-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .footer-brand {
-    grid-column: 1 / -1;
+  .footer-links {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: 32px;
   }
 
   .block {
@@ -1202,49 +1276,31 @@ h1.headline {
 }
 
 @media (max-width: 640px) {
-  .site-header nav {
-    gap: 16px;
-  }
-
-  .site-header nav a[href="/compare"],
-  .site-header nav a[href="/changelog"] {
-    display: none;
-  }
 
   .hero {
     padding-top: 48px;
   }
 
-  .cursors,
   .window-title span {
     display: none;
   }
 
-  .agent-grid li {
-    height: 112px;
-    gap: 24px;
-  }
 
   .more,
   .quad {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .stage-row {
-    gap: 32px;
-    min-height: 0;
-  }
-
-  .stage-row .sprite {
-    zoom: 0.6;
-  }
-
   .download-card {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .footer-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .footer-links {
+    margin-top: 48px;
+  }
+
+  .footer-copy {
+    margin-top: 72px;
   }
 }
 
@@ -1254,8 +1310,11 @@ h1.headline {
   }
 
   .sprite.playing,
-  .agent-cursor,
-  .stage-row {
+  .sprite.fluid.playing,
+  .stage-item .sprite.fluid.playing,
+  .drift-track,
+  .stage-row,
+  .stage-sheet {
     animation: none;
   }
 }
@@ -1279,4 +1338,1253 @@ h1.headline {
 
 .prose h3 + .command {
   margin-top: 8px;
+}
+
+/* ---------- the dock in the hero (macOS 26, dark) ----------
+   Resting icons are two thirds of the title size; Dock.tsx grows them to the title size under the pointer. */
+
+.dock-wrap {
+  --icon: var(--dock-icon);
+  display: flex;
+  justify-content: center;
+  /* Room above for a fully magnified icon and its name. */
+  padding-top: calc(var(--icon) * 0.5 + 44px);
+  margin-bottom: 40px;
+}
+
+.dock {
+  list-style: none;
+  margin: 0;
+  height: var(--dock-h);
+  padding: 0 6px 6px;
+  display: flex;
+  align-items: flex-end;
+  gap: calc(var(--icon) * 0.06);
+  border-radius: calc(var(--icon) * 0.42);
+  background: rgba(58, 58, 58, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.25),
+    0 20px 50px -16px rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+}
+
+.dock-item {
+  position: relative;
+  flex: none;
+  width: var(--icon);
+  height: var(--icon);
+}
+
+.dock-icon {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.dock-icon > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* Codex: the browser draws the mark over the plain tile (macOS's SVG renderer drops its cut-outs). */
+.dock-icon > .dock-mark {
+  position: absolute;
+  top: 16%;
+  left: 17%;
+  width: 66%;
+  height: 66%;
+}
+
+.dock-dot {
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  width: 4px;
+  height: 4px;
+  margin-left: -2px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+/* The name bubble with its pointer. Appears quickly (120ms, ease-out, from 0.97), leaves instantly, so moving
+   along the dock swaps names without lag. */
+.dock-label {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 12px);
+  padding: 3px 11px 4px;
+  border-radius: 8px;
+  background: rgba(36, 36, 36, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  color: #f2f2f2;
+  font-size: 13px;
+  line-height: 1.3;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(-50%) scale(0.97);
+  transform-origin: 50% 100%;
+}
+
+.dock-label::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
+  background: rgba(36, 36, 36, 0.94);
+  border-right: 1px solid rgba(255, 255, 255, 0.16);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+  border-bottom-right-radius: 2px;
+  transform: rotate(45deg);
+}
+
+/* Until someone points at the dock, OpenPixel's name stays up. */
+.dock:not(:hover) .dock-openpixel .dock-label {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .dock-item:hover .dock-label {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+    transition:
+      opacity 120ms cubic-bezier(0.23, 1, 0.32, 1),
+      transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+}
+
+.dock-divider {
+  align-self: center;
+  flex: none;
+  width: 1px;
+  height: calc(var(--icon) * 0.78);
+  margin: 6px calc(var(--icon) * 0.12) 0;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* OpenPixel launches: two bounces, rising fast and falling with gravity, then its running dot appears. */
+.dock-openpixel .dock-icon > img:first-child {
+  animation: dock-launch 1s 0.6s both;
+}
+
+.dock-openpixel .dock-dot {
+  animation: dock-dot 0.2s ease 1.6s both;
+}
+
+@keyframes dock-launch {
+  0% { transform: translateY(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  28% { transform: translateY(-46%); animation-timing-function: cubic-bezier(0.55, 0.06, 0.68, 0.19); }
+  52% { transform: translateY(0); animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  74% { transform: translateY(-22%); animation-timing-function: cubic-bezier(0.55, 0.06, 0.68, 0.19); }
+  92%, 100% { transform: translateY(0); }
+}
+
+@keyframes dock-dot {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (max-width: 640px) {
+  .agent-grid li {
+    padding: 10px 10px 8px;
+    font-size: 12px;
+  }
+
+  .agent-icon {
+    width: 32px;
+    height: 32px;
+    margin: -2px;
+  }
+
+  .hero {
+    --dock-icon: 30px;
+    --dock-h: calc(30px + 8px);
+  }
+
+  .dock-wrap {
+    padding-top: 40px;
+    margin-bottom: 28px;
+  }
+
+  .dock {
+    padding: 0 4px 4px;
+  }
+
+  .dock-label {
+    font-size: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dock-openpixel .dock-icon > img:first-child,
+  .dock-openpixel .dock-dot {
+    animation: none;
+  }
+}
+
+
+/* ---------- the prompt bar in the hero (typewriter, like pen.dev) */
+
+.prompt-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  height: var(--dock-h);
+  padding: 0 5px 0 18px;
+  border-radius: 999px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  text-align: left;
+}
+
+/* Left-aligned while it fits; once the text is wider than the bar it stays anchored to the caret, so the
+   start slides out on the left instead of the end being cut off. */
+.prompt-viewport {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  justify-content: flex-end;
+  overflow: hidden;
+}
+
+.prompt-viewport.overflowing {
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 48px);
+  mask-image: linear-gradient(to right, transparent 0, #000 48px);
+}
+
+.prompt-track {
+  flex: none;
+  min-width: 100%;
+  display: flex;
+  align-items: center;
+  white-space: pre;
+}
+
+.prompt-text {
+  font-size: 15px;
+  color: var(--text-2);
+}
+
+.prompt-caret {
+  flex: none;
+  width: 1.5px;
+  height: 18px;
+  margin-left: 1px;
+  background: var(--text);
+  animation: caret 1.05s steps(1) infinite;
+}
+
+@keyframes caret {
+  50% { opacity: 0; }
+}
+
+/* Light pill like pen.dev's: the secondary action next to the orange download button. */
+.prompt-button {
+  position: relative;
+  flex: none;
+  display: grid;
+  height: calc(var(--dock-h) - 10px);
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: #e6e6e6;
+  color: #1e1e1e;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 150ms ease, transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.prompt-button:hover {
+  background: #ffffff;
+}
+
+.prompt-button:active {
+  transform: scale(0.97);
+}
+
+/* "Copy" and "Copied" share one cell and cross-fade, with a touch of blur to blend the swap. */
+.prompt-button .swap {
+  grid-area: 1 / 1;
+  align-self: center;
+  transition: opacity 180ms ease, filter 180ms ease, transform 180ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.prompt-button .swap.out {
+  opacity: 0;
+  filter: blur(2px);
+  transform: scale(0.95);
+}
+
+@media (max-width: 640px) {
+  .prompt-bar {
+    padding: 0 4px 0 14px;
+  }
+
+  .prompt-text {
+    font-size: 14px;
+  }
+
+  .prompt-button {
+    height: calc(var(--dock-h) - 8px);
+    padding: 0 12px;
+    font-size: 13px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .prompt-caret {
+    animation: none;
+  }
+}
+
+/* ---------- download page (two columns of sections, like pen.dev/downloads) */
+
+.downloads {
+  padding-top: 72px;
+}
+
+.dl-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+/* minmax(0, 1fr) everywhere: a long command must truncate, never widen its column. */
+.dl-col {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+}
+
+.dl-col > section {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+}
+
+.dl-col > section + section {
+  margin-top: 44px;
+}
+
+.dl-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding-bottom: 12px;
+}
+
+.dl-head h2 {
+  margin-top: 18px;
+  color: var(--text);
+  font-size: 30px;
+  font-weight: 450;
+  letter-spacing: -0.02em;
+}
+
+.dl-head p {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--text-3);
+}
+
+/* The section icon: a 64px tile, like a Dock icon. */
+.dl-icon {
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border-radius: 15px;
+  background: linear-gradient(180deg, #333 0%, #1d1d1d 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 6px 18px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+/* The agents sparkle, drawn on the dark tile like "Any agent" on the home page. */
+.dl-icon .ai-icon {
+  width: 32px;
+  height: 32px;
+}
+
+.dl-icon > img {
+  width: 100%;
+  height: 100%;
+  transform: scale(1.14); /* the rendered icon has its own margin and shadow */
+}
+
+.dl-terminal {
+  font-family: var(--font-mono), monospace;
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.dl-card {
+  border-radius: var(--r-card);
+  background: var(--panel-2);
+  border: 1px solid var(--line-soft);
+  padding: 6px 22px;
+}
+
+.dl-card-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 0 8px;
+}
+
+.dl-card-title h3 {
+  font-size: 20px;
+  font-weight: 450;
+  letter-spacing: -0.01em;
+}
+
+.dl-card-title span {
+  font-size: 12.5px;
+  color: var(--text-3);
+  text-align: right;
+}
+
+.dl-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 62px;
+  padding: 12px 0;
+}
+
+.dl-row + .dl-row,
+.dl-card-title + .dl-row + .dl-row {
+  border-top: 1px solid var(--line-soft);
+}
+
+.dl-code + .dl-row {
+  border-top: 1px solid var(--line-soft);
+  margin-top: 12px;
+}
+
+.dl-row-text {
+  min-width: 0;
+}
+
+.dl-row h4 {
+  margin: 0;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 400;
+}
+
+.dl-row p {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-3);
+}
+
+.dl-row p code {
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.dl-row-actions {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.dl-foot {
+  padding: 4px 0 18px;
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+.dl-code {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 46px;
+  margin: 6px 0 10px;
+  padding: 0 6px 0 14px;
+  border-radius: 12px;
+  background: var(--deep);
+  border: 1px solid var(--line-soft);
+}
+
+.dl-code > span {
+  color: var(--text-3);
+  font-family: var(--font-mono), monospace;
+}
+
+.dl-code code {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+  color: var(--text);
+}
+
+/* Small grey pill, the button on every row. */
+.pill {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--hover);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 150ms ease, transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.pill:hover {
+  background: #474747;
+  color: var(--text);
+}
+
+.pill:active {
+  transform: scale(0.97);
+}
+
+.pill .swap,
+.prompt-button .swap {
+  grid-area: 1 / 1;
+  transition: opacity 180ms ease, filter 180ms ease, transform 180ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.pill .swap.out {
+  opacity: 0;
+  filter: blur(2px);
+  transform: scale(0.95);
+}
+
+@media (max-width: 760px) {
+  .downloads {
+    padding-top: 40px;
+  }
+
+  .dl-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 44px;
+  }
+
+  .dl-card {
+    padding: 4px 16px;
+  }
+}
+
+/* ---------- compare overview and detail pages (measured from pen.dev/compare at 1440px) */
+
+.cmp {
+  --cmp-muted: rgba(255, 255, 255, 0.5);
+  --cmp-quiet: rgba(255, 255, 255, 0.55);
+  --cmp-faint: rgba(255, 255, 255, 0.44);
+  --cmp-surface: rgba(255, 255, 255, 0.03);
+  padding-inline: 24px;
+}
+
+.cmp-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding-top: 88px;
+}
+
+/* The app icon has its own margin: 72px of image is a 64px tile. */
+.cmp-mark {
+  width: 72px;
+  height: 72px;
+  margin: -4px 0;
+}
+
+.cmp-title {
+  margin-top: 24px;
+  color: var(--text);
+  font-size: clamp(40px, 5vw, 64px);
+  line-height: 1.1;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  font-variation-settings: "opsz" 32;
+}
+
+.cmp-lede {
+  margin-top: 24px;
+  max-width: 560px;
+  font-size: 20px;
+  line-height: 28px;
+  letter-spacing: -0.01em;
+  color: var(--cmp-muted);
+}
+
+/* Overview groups: desktop apps, web apps, voxel editors. */
+.cmp-group {
+  max-width: var(--content);
+  margin: 96px auto 0;
+}
+
+.cmp-group + .cmp-group {
+  margin-top: 72px;
+}
+
+.cmp-group-title {
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 450;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.cmp-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  max-width: var(--content);
+  margin: 96px auto 0;
+}
+
+.cmp-group .cmp-cards {
+  margin-top: 20px;
+}
+
+.cmp-card {
+  display: block;
+  min-height: 276px;
+  padding: 32px;
+  border-radius: 8px;
+  background: var(--cmp-surface);
+  color: var(--text);
+  transition: background-color 150ms ease;
+}
+
+.cmp-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+}
+
+.cmp-card-logos {
+  height: 128px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+}
+
+.cmp-card-logos img {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+}
+
+/* Our icon carries its own margin and shadow. */
+.cmp-card-logos img:first-child {
+  width: 72px;
+  height: 72px;
+  margin: -4px;
+  border-radius: 0;
+}
+
+.cmp-card-logos span {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--cmp-muted);
+}
+
+.cmp-card h3 {
+  margin-top: 16px;
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+.cmp-card p {
+  margin-top: 16px;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: -0.01em;
+  color: var(--cmp-quiet);
+}
+
+/* Detail hero */
+
+.cmp-hero.detail {
+  padding-top: 104px;
+}
+
+.cmp-vs {
+  margin-top: 32px;
+  color: var(--text);
+  font-size: clamp(48px, 6vw, 86.4px);
+  line-height: 1.05;
+  font-weight: 400;
+  letter-spacing: -0.05em;
+  font-variation-settings: "opsz" 32;
+}
+
+.cmp-vs span {
+  color: var(--cmp-muted);
+}
+
+.cmp-tagline {
+  margin-top: 32px;
+  color: var(--text);
+  font-size: clamp(24px, 2.4vw, 32px);
+  line-height: 1.33;
+  letter-spacing: -0.02em;
+}
+
+.cmp-intro {
+  margin-top: 15px;
+  max-width: 620px;
+  font-size: clamp(18px, 1.6vw, 22px);
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+  color: var(--cmp-muted);
+}
+
+.cmp-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 32px;
+}
+
+.cmp-btn {
+  display: inline-flex;
+  align-items: center;
+  height: 46px;
+  padding: 0 20px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  transition: background-color 150ms ease, transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.cmp-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: var(--text);
+}
+
+.cmp-btn.primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+.cmp-btn.primary:hover {
+  background: var(--accent-hover);
+}
+
+.cmp-btn:active {
+  transform: scale(0.97);
+}
+
+.cmp-note {
+  margin-top: 32px;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: -0.02em;
+  color: var(--cmp-faint);
+}
+
+.cmp-wide {
+  max-width: var(--content);
+  margin: 112px auto 0;
+}
+
+/* Headings shared by the sections */
+
+.cmp-h2 {
+  color: var(--text);
+  font-size: 32px;
+  line-height: 36px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+
+.cmp-sub {
+  margin: 8px auto 0;
+  max-width: 460px;
+  font-size: 20px;
+  line-height: 24px;
+  letter-spacing: -0.01em;
+  color: var(--cmp-muted);
+}
+
+/* Comparison table */
+
+.cmp-why {
+  padding: 120px 0 80px;
+  text-align: center;
+}
+
+.cmp-legend {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 28px;
+  margin: 88px 0 0;
+  padding: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--cmp-muted);
+}
+
+.cmp-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cmp-legend .cmp-cell svg {
+  width: 16px;
+  height: 16px;
+}
+
+.cmp-table-wrap {
+  max-width: 672px;
+  margin: 64px auto 0;
+  border-radius: 24px;
+  overflow: hidden;
+  background: var(--cmp-surface);
+}
+
+.cmp-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: -0.01em;
+  text-align: left;
+}
+
+.cmp-table th,
+.cmp-table td {
+  padding: 16px 24px;
+  vertical-align: middle;
+}
+
+.cmp-table td {
+  padding: 16px;
+  text-align: center;
+  color: var(--cmp-muted);
+}
+
+.cmp-table thead th {
+  height: 64px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.cmp-table thead th:not(:first-child) {
+  width: 25%;
+  text-align: center;
+  color: var(--cmp-muted);
+  font-weight: 400;
+}
+
+.cmp-table thead th.us {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.cmp-th-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cmp-table tbody th {
+  font-weight: 400;
+  color: var(--text);
+}
+
+.cmp-table tbody tr {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Our column is lifted slightly, top to bottom. */
+.cmp-table td.us,
+.cmp-table th.us {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.cmp-cell {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.cmp-cell svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.cmp-cell.us {
+  color: var(--text);
+}
+
+.cmp-cell span {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--cmp-muted);
+}
+
+.cmp-footnote {
+  max-width: 672px;
+  margin: 20px auto 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--cmp-faint);
+}
+
+.cmp-footnote a {
+  color: var(--text-2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Bring your work */
+
+.cmp-bring {
+  padding: 88px 0;
+  text-align: center;
+}
+
+.cmp-bring .cmp-cards {
+  margin-top: 64px;
+}
+
+.cmp-feature {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 500px;
+  padding: 32px;
+  border-radius: 8px;
+  background: var(--cmp-surface);
+}
+
+.cmp-feature h3 {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.cmp-feature-art {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  margin: 24px 0;
+}
+
+.cmp-feature p {
+  max-width: 280px;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: -0.01em;
+  color: var(--cmp-quiet);
+}
+
+.swatches.big {
+  grid-template-columns: repeat(8, 26px);
+  gap: 6px;
+}
+
+.swatches.big i {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+}
+
+/* Showcases */
+
+.cmp-show {
+  max-width: var(--content);
+  margin: 0 auto;
+  padding: 72px 0 80px;
+}
+
+.cmp-show.compact {
+  padding-top: 40px;
+}
+
+.cmp-show h2 {
+  margin-bottom: 21px;
+  color: var(--text);
+  font-size: 20px;
+  line-height: 24px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+.cmp-show h2 span {
+  display: block;
+  color: var(--cmp-faint);
+}
+
+.cmp-show.compact h2 span {
+  display: inline;
+}
+
+/* Closing */
+
+.cmp-cta {
+  padding: 160px 0 40px;
+  text-align: center;
+}
+
+.cmp-cta-mark {
+  width: min(380px, 70vw);
+  height: auto;
+  margin: 0 auto;
+}
+
+.cmp-cta h2 {
+  max-width: 720px;
+  margin: 48px auto 0;
+  color: var(--text);
+  font-size: clamp(32px, 3.4vw, 44px);
+  line-height: 1.05;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+
+.cmp-cta .cmp-sub {
+  margin-top: 24px;
+}
+
+.cmp-cta .cmp-buttons {
+  margin-top: 24px;
+}
+
+@media (max-width: 1000px) {
+  .cmp-cards {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 520px;
+  }
+
+  .cmp-group {
+    max-width: 520px;
+  }
+
+  .cmp-feature {
+    min-height: 420px;
+  }
+}
+
+@media (max-width: 640px) {
+  .cmp {
+    padding-inline: 16px;
+  }
+
+  .cmp-hero,
+  .cmp-hero.detail {
+    padding-top: 48px;
+  }
+
+  .cmp-cards {
+    margin-top: 56px;
+  }
+
+  .cmp-group {
+    margin-top: 56px;
+  }
+
+  .cmp-group + .cmp-group {
+    margin-top: 48px;
+  }
+
+  .cmp-table th,
+  .cmp-table td {
+    padding: 14px 12px;
+    font-size: 14px;
+  }
+
+  .cmp-table thead th:not(:first-child) {
+    width: 28%;
+  }
+
+  .cmp-legend {
+    margin-top: 40px;
+  }
+
+  .cmp-table-wrap {
+    margin-top: 32px;
+    border-radius: 16px;
+  }
+}
+
+
+/* The button is a flex box, which drops a leading space inside the span, so the gap is set here. */
+.site-header .for-mac {
+  margin-left: 0.28em;
+}
+
+/* Phones: the header button shortens to "Download" so the row fits. */
+@media (max-width: 420px) {
+  .site-header .for-mac {
+    display: none;
+  }
+}
+
+/* The first-launch note on the downloads page, shown while releases aren't notarized. */
+.dl-first-launch {
+  margin-top: -8px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line-soft);
+  color: var(--text-2);
+}
+
+.dl-first-launch strong {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.dl-first-launch + * {
+  margin-top: 18px;
+}
+
+/* Cookie banner: a small card at the bottom left that never covers the page or takes focus.
+   Allow and Decline look the same, so neither is the easy way out. */
+.cookie {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 60;
+  width: min(380px, calc(100vw - 32px));
+  padding: 18px 18px 16px;
+  border-radius: var(--r-card);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-2);
+  opacity: 0;
+  transform: translateY(8px);
+  visibility: hidden;
+  transition:
+    opacity 200ms cubic-bezier(0.23, 1, 0.32, 1),
+    transform 200ms cubic-bezier(0.23, 1, 0.32, 1),
+    visibility 0s linear 200ms;
+}
+
+.cookie.open {
+  opacity: 1;
+  transform: none;
+  visibility: visible;
+  transition:
+    opacity 260ms cubic-bezier(0.23, 1, 0.32, 1),
+    transform 260ms cubic-bezier(0.23, 1, 0.32, 1),
+    visibility 0s;
+}
+
+.cookie a {
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.cookie-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.cookie-button {
+  height: 34px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: #e6e6e6;
+  color: #1e1e1e;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 150ms ease, transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.cookie-button:hover {
+  background: #fff;
+}
+
+.cookie-button:active {
+  transform: scale(0.97);
+}
+
+.cookie-button:focus-visible,
+.footer-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cookie,
+  .cookie.open {
+    transform: none;
+    transition: opacity 120ms ease, visibility 0s;
+  }
+}
+
+/* "Cookie settings" in the footer: a button that looks like the links around it. */
+.footer-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: color 150ms ease;
+}
+
+.footer-button:hover {
+  color: var(--text);
 }

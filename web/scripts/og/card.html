@@ -1,0 +1,149 @@
+<!doctype html>
+<!--
+  The social preview card (Open Graph and X). Rendered to PNG by scripts/og/make-og.sh; not part of the site.
+  The chest is the real 32×32 sprite OpenPixel drew for the prompt shown in the bar, blown up pixel for pixel.
+  ?h=600 renders the X (Twitter) size; the default is 630 for Open Graph.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..600&display=block">
+<style>
+  :root {
+    --bg: #1e1e1e;
+    --panel: #252525;
+    --panel-2: #2c2c2c;
+    --line: rgba(255, 255, 255, 0.08);
+    --text: #e8e8e8;
+    --text-2: #a8a8a8;
+    --text-3: #7a7a7a;
+    --accent: #ff4a1c;
+    --cell: 11px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1200px; height: var(--h, 630px); overflow: hidden; background: var(--bg); }
+  body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 418px;
+    font-family: Inter, system-ui, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .copy {
+    display: flex;
+    flex-direction: column;
+    padding: 60px 56px 58px 72px;
+  }
+  .brand { display: flex; align-items: center; gap: 14px; font-size: 26px; font-weight: 550; letter-spacing: -0.015em; }
+  .brand img { width: 44px; height: 44px; }
+
+  /* Two lines, as on the site: the statement, then its continuation in grey. Sized to fit by the script below. */
+  h1 {
+    margin-top: auto;
+    font-size: 48px;
+    line-height: 1.12;
+    white-space: nowrap;
+    font-weight: 450;
+    letter-spacing: -0.026em;
+    font-variation-settings: "opsz" 32;
+  }
+  h1 span { color: var(--text-3); }
+
+  .prompt {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 60px;
+    margin-top: 36px;
+    padding: 0 6px 0 22px;
+    border-radius: 999px;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+  .prompt p { flex: 1; font-size: 19px; color: var(--text-2); white-space: nowrap; }
+  .prompt p::after {
+    content: "";
+    display: inline-block;
+    width: 2px;
+    height: 22px;
+    margin-left: 2px;
+    vertical-align: -4px;
+    background: var(--accent);
+  }
+  /* Light, like the Create button on the site, so the only orange button is Download. */
+  .prompt b {
+    padding: 0 22px;
+    line-height: 46px;
+    border-radius: 999px;
+    background: #e6e6e6;
+    color: #1e1e1e;
+    font-size: 17px;
+    font-weight: 500;
+  }
+
+  .actions { display: flex; align-items: center; gap: 22px; margin-top: 20px; }
+  .download {
+    padding: 0 26px;
+    line-height: 54px;
+    border-radius: 999px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 19px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .note { display: flex; align-items: center; gap: 9px; font-size: 16px; color: var(--text-3); white-space: nowrap; }
+  .note svg { width: 18px; height: 18px; flex: none; }
+
+  /* The canvas: the editor's grey, a faint pixel grid, and the sprite at 11× with every pixel visible. */
+  .canvas {
+    position: relative;
+    display: grid;
+    place-items: center;
+    background-color: var(--panel);
+    background-image:
+      linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+    background-size: var(--cell) var(--cell);
+    /* Shifted half a cell so grid lines fall exactly on the edges of the centred sprite's pixels. */
+    background-position: calc(50% + var(--cell) / 2) calc(50% + var(--cell) / 2);
+    border-left: 1px solid var(--line);
+  }
+  .canvas img {
+    width: calc(32 * var(--cell));
+    height: calc(32 * var(--cell));
+    image-rendering: pixelated;
+    filter: drop-shadow(0 24px 40px rgba(0, 0, 0, 0.35));
+  }
+</style>
+</head>
+<body>
+  <section class="copy">
+    <div class="brand"><img src="../../public/app-icon.svg" alt="">OpenPixel</div>
+    <h1>OpenPixel is an agentic pixel editor<br><span>for sprites and voxel worlds.</span></h1>
+    <div class="prompt"><p>Draw a 32×32 treasure chest</p><b>Create</b></div>
+    <div class="actions">
+      <span class="download">Download for macOS</span>
+      <p class="note">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        Free and open source
+      </p>
+    </div>
+  </section>
+  <section class="canvas"><img src="../../public/art/chest.png" alt=""></section>
+  <script>
+    const h = new URLSearchParams(location.search).get("h");
+    if (h) document.documentElement.style.setProperty("--h", h + "px");
+    // Shrink the headline until its longer line fits the column (it starts at the largest size we want).
+    document.fonts.ready.then(() => {
+      const h1 = document.querySelector("h1");
+      const room = h1.parentElement.clientWidth - 72 - 56;
+      let size = 48;
+      while (h1.scrollWidth > room && size > 30) h1.style.fontSize = --size + "px";
+      document.body.dataset.ready = "1";
+    });
+  </script>
+</body>
+</html>
