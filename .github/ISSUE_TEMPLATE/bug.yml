@@ -1,0 +1,28 @@
+name: Bug report
+description: Something in OpenPixel doesn't work as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations: { required: true }
+  - type: input
+    id: version
+    attributes:
+      label: OpenPixel version
+      description: OpenPixel menu → About OpenPixel
+    validations: { required: true }
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version and Mac (Apple silicon or Intel)
+  - type: input
+    id: agent
+    attributes:
+      label: Agent, if one was involved
+      description: For example Claude Code 2.1 or Cursor 1.4
+  - type: markdown
+    attributes:
+      value: "Found a security problem? Please don't open an issue: follow SECURITY.md instead."

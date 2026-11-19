@@ -1,0 +1,16 @@
+# Groups the automatically generated release notes by pull request label.
+changelog:
+  exclude:
+    labels: [skip-changelog]
+    authors: [dependabot]
+  categories:
+    - title: New
+      labels: [feature, enhancement]
+    - title: Fixes
+      labels: [bug, fix]
+    - title: Security
+      labels: [security]
+    - title: Website and docs
+      labels: [website, docs]
+    - title: Other changes
+      labels: ["*"]

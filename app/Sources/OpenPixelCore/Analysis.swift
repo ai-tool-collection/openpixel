@@ -1,0 +1,119 @@
+import Foundation
+
+/// Checks an agent (or person) can use to review a model before refining it.
+public enum Analysis {
+    public static func analyze(_ doc: Document, frame: Int) -> [String: Any] {
+        let g = doc.composite(frame: frame)
+        var count = 0
+        var lo = (Int.max, Int.max, Int.max), hi = (-1, -1, -1)
+        var perColor: [Int: Int] = [:]
+        for y in 0..<doc.sy { for z in 0..<doc.sz { for x in 0..<doc.sx {
+            let v = g[doc.index(x, y, z)]
+            if v == 0 { continue }
+            count += 1
+            perColor[Int(v), default: 0] += 1
+            lo = (min(lo.0, x), min(lo.1, y), min(lo.2, z)); hi = (max(hi.0, x), max(hi.1, y), max(hi.2, z))
+        } } }
+        var issues: [String] = []
+        var result: [String: Any] = [
+            "size": [doc.sx, doc.sy, doc.sz], "frame": frame, "voxels": count,
+        ]
+        if count == 0 {
+            result["issues"] = ["The model is empty."]
+            return result
+        }
+        result["bounds"] = ["min": [lo.0, lo.1, lo.2], "max": [hi.0, hi.1, hi.2],
+                            "size": [hi.0 - lo.0 + 1, hi.1 - lo.1 + 1, hi.2 - lo.2 + 1]]
+        result["colors"] = perColor.sorted { $0.value > $1.value }.map {
+            ["index": $0.key, "hex": doc.palette[$0.key].hex, "voxels": $0.value]
+        }
+        let unused = (1..<doc.palette.count).filter { perColor[$0] == nil }
+        result["unused_palette_indexes"] = unused
+
+        // Connected parts (6-neighbour). Parts not touching the ground and smaller than the largest are "floating".
+        var label = [Int32](repeating: -1, count: doc.count)
+        var parts: [(size: Int, grounded: Bool, sample: (Int, Int, Int))] = []
+        for y in 0..<doc.sy { for z in 0..<doc.sz { for x in 0..<doc.sx {
+            let i = doc.index(x, y, z)
+            if g[i] == 0 || label[i] >= 0 { continue }
+            let id = Int32(parts.count)
+            var stack = [(x, y, z)]; label[i] = id
+            var size = 0, grounded = false
+            while let (cx, cy, cz) = stack.popLast() {
+                size += 1
+                if cy == lo.1 { grounded = true }
+                for (nx, ny, nz) in [(cx+1,cy,cz),(cx-1,cy,cz),(cx,cy+1,cz),(cx,cy-1,cz),(cx,cy,cz+1),(cx,cy,cz-1)]
+                where doc.inBounds(nx, ny, nz) {
+                    let j = doc.index(nx, ny, nz)
+                    if g[j] != 0 && label[j] < 0 { label[j] = id; stack.append((nx, ny, nz)) }
+                }
+            }
+            parts.append((size, grounded, (x, y, z)))
+        } } }
+        let largest = parts.map { $0.size }.max() ?? 0
+        let flat = doc.sz == 1
+        let floating = flat ? [] : parts.filter { !$0.grounded && $0.size < largest }
+        result["parts"] = parts.count
+        if flat && parts.count > 1 {
+            issues.append("\(parts.count) separate shapes; small ones may be stray pixels (see find_voxels).")
+        }
+        if !floating.isEmpty {
+            result["floating_parts"] = floating.prefix(20).map { ["voxels": $0.size, "at": [$0.sample.0, $0.sample.1, $0.sample.2]] }
+            issues.append("\(floating.count) part(s) float in the air without touching the rest of the model.")
+        }
+
+        // Left/right symmetry around the occupied bounds' centre.
+        var same = 0, total = 0
+        for y in lo.1...hi.1 { for z in lo.2...hi.2 { for x in lo.0...hi.0 {
+            let v = g[doc.index(x, y, z)]
+            if v == 0 { continue }
+            total += 1
+            let mx = lo.0 + hi.0 - x
+            if doc.inBounds(mx, y, z) && g[doc.index(mx, y, z)] == v { same += 1 }
+        } } }
+        let sym = total == 0 ? 1.0 : Double(same) / Double(total)
+        result["symmetry_x"] = (sym * 1000).rounded() / 1000
+        if sym > 0.85 && sym < 0.999 { issues.append("Almost symmetric left/right (\(Int(sym * 100))%): mirror_model can make it exact.") }
+
+        if flat {
+            if lo.0 == 0 || lo.1 == 0 || hi.0 == doc.sx - 1 || hi.1 == doc.sy - 1 {
+                issues.append("The sprite touches the canvas edge; leave a 1-pixel margin for outlines.")
+            }
+        } else {
+            if lo.0 == 0 || lo.2 == 0 || hi.0 == doc.sx - 1 || hi.1 == doc.sy - 1 || hi.2 == doc.sz - 1 {
+                issues.append("The model touches the edge of the model space; resize_model gives it room.")
+            }
+            if lo.1 > 0 { issues.append("The lowest voxel is at y=\(lo.1), not on the ground (y=0).") }
+        }
+        if perColor.count == 1 && count > 8 {
+            issues.append("Only one colour is used; shading with 2-4 tones of a ramp reads better as pixel art.")
+        }
+        // Surface share: lone voxels with no neighbours are often stray clicks.
+        var lonely = 0
+        for y in lo.1...hi.1 { for z in lo.2...hi.2 { for x in lo.0...hi.0 where g[doc.index(x, y, z)] != 0 {
+            var n = 0
+            for (nx, ny, nz) in [(x+1,y,z),(x-1,y,z),(x,y+1,z),(x,y-1,z),(x,y,z+1),(x,y,z-1)]
+            where doc.inBounds(nx, ny, nz) && g[doc.index(nx, ny, nz)] != 0 { n += 1 }
+            if n == 0 { lonely += 1 }
+        } } }
+        if lonely > 0 { issues.append("\(lonely) single \(flat ? "pixel" : "voxel")(s) with no neighbours (possible strays).") }
+        result["issues"] = issues
+        return result
+    }
+
+    /// Differences between two grids of the same size.
+    public static func diff(_ a: [UInt8], _ b: [UInt8], doc: Document, limit: Int = 50) -> [String: Any] {
+        guard a.count == b.count else { return ["error": "sizes differ"] }
+        var added = 0, removed = 0, recolored = 0
+        var samples: [[String: Any]] = []
+        for y in 0..<doc.sy { for z in 0..<doc.sz { for x in 0..<doc.sx {
+            let i = doc.index(x, y, z)
+            let o = a[i], n = b[i]
+            if o == n { continue }
+            let kind = o == 0 ? "added" : n == 0 ? "removed" : "recolored"
+            if o == 0 { added += 1 } else if n == 0 { removed += 1 } else { recolored += 1 }
+            if samples.count < limit { samples.append(["at": [x, y, z], "change": kind, "from": Int(o), "to": Int(n)]) }
+        } } }
+        return ["added": added, "removed": removed, "recolored": recolored, "samples": samples]
+    }
+}

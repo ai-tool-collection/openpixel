@@ -1,0 +1,14 @@
+name: Feature request
+description: Suggest something OpenPixel should do
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you're trying to do
+      description: The task or problem, rather than a specific solution.
+    validations: { required: true }
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea

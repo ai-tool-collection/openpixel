@@ -1,0 +1,105 @@
+# Publishes a release when a maintainer pushes a tag like v1.2.0 (only repository admins can; see RELEASING.md).
+# Builds a universal app, signs it with the Developer ID, notarizes the disk image, signs the Sparkle update
+# and creates the GitHub release with OpenPixel.dmg and appcast.xml. Tags with a "-" (v1.3.0-beta.1) become
+# pre-releases, which neither the website nor installed apps pick up.
+#
+# Secrets live in the "release" environment, which only v* tags may use: pull requests never see them.
+name: release
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: read
+concurrency:
+  group: release
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: macos-15
+    timeout-minutes: 60
+    environment: release
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check the tag
+        run: |
+          case "$TAG" in
+            v[0-9]*.[0-9]*.[0-9]*) ;;
+            *) echo "::error::tag must look like v1.2.3 or v1.2.3-beta.1 (got $TAG)"; exit 1 ;;
+          esac
+          # Only commits that went through review on main can be released.
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main || { echo "::error::$TAG is not on main"; exit 1; }
+          VERSION="${TAG#v}"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          case "$VERSION" in *-*) echo "PRERELEASE=--prerelease" >> "$GITHUB_ENV" ;; *) echo "PRERELEASE=--latest" >> "$GITHUB_ENV" ;; esac
+
+      - name: Import the Developer ID certificate into a temporary keychain
+        env:
+          MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          KC="$RUNNER_TEMP/signing.keychain-db"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KC"
+          security set-keychain-settings -lut 3600 "$KC"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KC"
+          printf '%s' "$MACOS_CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KC" -P "$MACOS_CERT_PASSWORD" -T /usr/bin/codesign
+          rm -f "$RUNNER_TEMP/cert.p12"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KC" >/dev/null
+          # Add the new keychain to the search list, keeping the existing ones (one path per word).
+          # shellcheck disable=SC2046
+          security list-keychains -d user -s "$KC" $(security list-keychains -d user | tr -d '"')
+          ID="$(security find-identity -v -p codesigning "$KC" | sed -nE 's/.*"(Developer ID Application: .*)"/\1/p' | head -1)"
+          [ -n "$ID" ] || { echo "::error::no Developer ID Application certificate in MACOS_CERT_P12"; exit 1; }
+          echo "SIGN_ID=$ID" >> "$GITHUB_ENV"
+
+      - name: Write the notarization and Sparkle keys to temporary files
+        env:
+          NOTARY_KEY_P8: ${{ secrets.NOTARY_KEY_P8 }}
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          umask 077
+          printf '%s' "$NOTARY_KEY_P8" | base64 --decode > "$RUNNER_TEMP/notary.p8"
+          printf '%s' "$SPARKLE_PRIVATE_KEY" > "$RUNNER_TEMP/sparkle.key"
+          echo "NOTARY_KEY_PATH=$RUNNER_TEMP/notary.p8" >> "$GITHUB_ENV"
+          echo "SPARKLE_KEY_FILE=$RUNNER_TEMP/sparkle.key" >> "$GITHUB_ENV"
+
+      - name: Release notes (every pull request merged since the last tag)
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" -f tag_name="$TAG" --jq .body > "$RUNNER_TEMP/notes.md"
+          # The update window shows a short plain-text version; the full notes are on the release page.
+          {
+            echo "RELEASE_NOTES<<NOTES_END"
+            sed -E 's/^#+ //; s/\*\*//g; s/ by @[^ ]+ in https:[^ ]+//' "$RUNNER_TEMP/notes.md" | grep -v '^Full Changelog' | head -c 1500
+            echo
+            echo "NOTES_END"
+          } >> "$GITHUB_ENV"
+
+      - name: Build, sign, notarize, write appcast
+        working-directory: app
+        env:
+          NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
+          NOTARY_ISSUER_ID: ${{ secrets.NOTARY_ISSUER_ID }}
+          REPO: ${{ github.repository }}
+        run: sh scripts/release.sh "$VERSION"
+
+      - name: Publish the GitHub release
+        run: |
+          gh release create "$TAG" app/dist/OpenPixel.dmg app/dist/appcast.xml \
+            --repo "$GITHUB_REPOSITORY" --verify-tag "$PRERELEASE" \
+            --title "OpenPixel $VERSION" --notes-file "$RUNNER_TEMP/notes.md"
+
+      - name: Remove keys and keychain
+        if: always()
+        run: |
+          security delete-keychain "$RUNNER_TEMP/signing.keychain-db" 2>/dev/null || true
+          rm -f "$RUNNER_TEMP/notary.p8" "$RUNNER_TEMP/sparkle.key" "$RUNNER_TEMP/cert.p12"

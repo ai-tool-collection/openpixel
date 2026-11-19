@@ -1,0 +1,16 @@
+# Build output
+.build/
+.swiftpm/
+OpenPixel.app/
+OpenPixel.app.tmp/
+build/
+Frameworks/
+dist/
+shots/
+*.dmg
+
+# Local build notes (not part of the published source)
+mechanics.json
+MECHANICS.md
+
+.DS_Store

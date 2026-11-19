@@ -1,0 +1,10 @@
+.DS_Store
+.env
+.env*.local
+*.p12
+*.p8
+*.cer
+*.mobileprovision
+*sparkle*private*
+*.key
+.claude/

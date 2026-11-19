@@ -1,0 +1,39 @@
+#!/bin/sh
+# Starts a release: checks that main is clean, up to date and green, then pushes the tag v<version>.
+# GitHub Actions (.github/workflows/release.yml) builds, signs, notarizes and publishes it.
+# Only repository admins can push v* tags (see RELEASING.md), so only maintainers can release.
+#
+#   scripts/tag-release.sh 1.2.0          (or: make release-tag VERSION=1.2.0)
+#   scripts/tag-release.sh 1.3.0-beta.1   (prerelease: not offered to users or the website)
+set -eu
+VERSION="${1:?usage: scripts/tag-release.sh <version, e.g. 1.2.0>}"
+VERSION="${VERSION#v}"
+TAG="v$VERSION"
+case "$VERSION" in
+  [0-9]*.[0-9]*.[0-9]*) ;;
+  *) echo "error: version must look like 1.2.3 or 1.2.3-beta.1" >&2; exit 1 ;;
+esac
+
+[ "$(git rev-parse --abbrev-ref HEAD)" = "main" ] || { echo "error: switch to main first" >&2; exit 1; }
+[ -z "$(git status --porcelain)" ] || { echo "error: commit or stash your changes first" >&2; exit 1; }
+git fetch --quiet origin main --tags
+[ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || { echo "error: main differs from origin/main — pull or push first" >&2; exit 1; }
+if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then echo "error: $TAG already exists" >&2; exit 1; fi
+
+if command -v gh >/dev/null 2>&1; then
+  STATE="$(gh run list --branch main --workflow app-ci.yml --limit 1 --json conclusion --jq '.[0].conclusion' 2>/dev/null || true)"
+  if [ -n "$STATE" ] && [ "$STATE" != "success" ]; then
+    echo "error: the latest app CI run on main is '$STATE' — fix it before releasing" >&2; exit 1
+  fi
+fi
+
+LAST="$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)"
+echo "Releasing $TAG. Changes since ${LAST:-the beginning}:"
+git log --oneline ${LAST:+"$LAST"..}HEAD | head -50
+printf "Push %s? [y/N] " "$TAG"
+read -r answer
+[ "$answer" = "y" ] || [ "$answer" = "Y" ] || { echo "Cancelled."; exit 1; }
+
+git tag -a "$TAG" -m "OpenPixel $VERSION"
+git push origin "$TAG"
+echo "Pushed $TAG. Follow the build: gh run watch \$(gh run list --workflow release.yml --limit 1 --json databaseId --jq '.[0].databaseId')"

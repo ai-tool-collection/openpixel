@@ -1,0 +1,8 @@
+# Every change needs a maintainer's review. The release pipeline and the app's identity always need @eminvkc.
+*                       @eminvkc
+/.github/               @eminvkc
+/app/scripts/           @eminvkc
+/app/Info.plist         @eminvkc
+/app/Package.swift      @eminvkc
+/app/Package.resolved   @eminvkc
+/web/Dockerfile         @eminvkc

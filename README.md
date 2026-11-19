@@ -1,0 +1,61 @@
+# OpenPixel
+
+A native Mac editor for pixel art: flat 2D sprites and 3D voxel models that render to crisp sprites. It has a
+built-in [MCP](https://modelcontextprotocol.io) server, so AI agents can draw, review and refine art with you.
+Agent edits appear live in the open window and can be undone.
+
+**[Download for Mac](https://github.com/sophne/openpixel/releases/latest/download/OpenPixel.dmg)** — macOS 13 or later,
+Apple silicon and Intel. OpenPixel updates itself.
+
+![The OpenPixel editor](web/public/editor.png)
+
+- **2D canvas**: pencil, eraser, recolour, fill, eyedropper, rectangle, line and move tools, mirror drawing, layers,
+  frames, onion skin and palettes.
+- **3D voxel view** with the same tools, isometric pixel-art previews, and Make 3D for any sprite.
+- **Exports**: PNG, SVG, HTML, animated GIF, sprite sheets, MagicaVoxel `.vox`, OBJ.
+- **Agents**: ChatGPT, Codex, Claude, Claude Code, Cursor, OpenClaw, Hermes Agent and any other MCP client. The
+  Agents page in the app shows who is connected and how to set each one up.
+
+## Connect an agent
+
+```sh
+claude mcp add --scope user openpixel -- /Applications/OpenPixel.app/Contents/MacOS/OpenPixel --mcp
+```
+
+Other agents use the same command (`OpenPixel --mcp`) in their MCP settings. `OpenPixel --mcp-http 8765` serves MCP
+over HTTP on this Mac only, for ChatGPT through a tunnel; agents connected that way can only open and save files in
+`~/Documents/OpenPixel`.
+
+## Repository
+
+| Folder | What it is |
+|---|---|
+| [`app/`](app) | The Mac app: Swift package (`Sources/`), the editor UI it shows in a web view (`app/web/`), build and release scripts |
+| [`web/`](web) | The website (Next.js), deployed with Docker |
+| [`.github/`](.github) | CI, CodeQL, release workflow, templates |
+
+Build the app (needs macOS 13+ and the Xcode command line tools):
+
+```sh
+cd app
+make            # OpenPixel.app
+make test       # engine, MCP and file-parsing checks
+make ui-test    # clicks through the editor and checks the layout
+```
+
+Run the website: `cd web && npm install && npm run dev`.
+
+## Contributing and security
+
+Pull requests are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md). Report security problems privately as described
+in [SECURITY.md](SECURITY.md). How releases work: [RELEASING.md](RELEASING.md).
+
+## Credits
+
+- Icons: [Lucide](https://lucide.dev) (ISC), `app/web/LUCIDE-LICENSE.txt`
+- Agent logos: [LobeHub icons](https://github.com/lobehub/lobe-icons) (MIT), `app/web/agents/ATTRIBUTION.txt`. The logos
+  are trademarks of their owners and only identify compatible apps.
+- Updates: [Sparkle](https://sparkle-project.org) (MIT)
+- Palettes: DawnBringer 16/32 (Richard Fhager), PICO-8 (Lexaloffle), Endesga 32 (Endesga)
+
+OpenPixel is released under the [MIT licence](LICENSE).
